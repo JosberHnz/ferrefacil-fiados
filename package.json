@@ -1,0 +1,24 @@
+{
+  "name": "ferrefacil-fiados",
+  "version": "1.0.0",
+  "description": "Control de fiados con mora automatica para Ferreteria Ferrefacil",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "jest --coverage --coverageReporters=json-summary --coverageReporters=text --coverageReporters=lcov",
+    "seed": "node src/seed.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}
