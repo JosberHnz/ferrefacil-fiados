@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ferrefacil-fiados
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /var/data/fiados.db
+      - key: VERIFICATION_CODE
+        sync: false
+    disk:
+      name: fiados-data
+      mountPath: /var/data
+      sizeGB: 1
