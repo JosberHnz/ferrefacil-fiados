@@ -1,0 +1,285 @@
+{
+  "generado_at": "2026-08-17T17:24:30.533Z",
+  "motor": "sqlite",
+  "tablas": [
+    {
+      "nombre": "usuarios",
+      "filas": 1,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "INTEGER",
+          "pk": true,
+          "nulo": true
+        },
+        {
+          "nombre": "email",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "password_hash",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "rol",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [],
+      "relaciones": []
+    },
+    {
+      "nombre": "clientes",
+      "filas": 2,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "INTEGER",
+          "pk": true,
+          "nulo": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "telefono",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "direccion",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "limite_credito",
+          "tipo": "REAL",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [
+        "idx_clientes_nombre"
+      ],
+      "relaciones": []
+    },
+    {
+      "nombre": "productos",
+      "filas": 0,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "INTEGER",
+          "pk": true,
+          "nulo": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "precio",
+          "tipo": "REAL",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "stock",
+          "tipo": "INTEGER",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [],
+      "relaciones": []
+    },
+    {
+      "nombre": "fiados",
+      "filas": 3,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "INTEGER",
+          "pk": true,
+          "nulo": true
+        },
+        {
+          "nombre": "cliente_id",
+          "tipo": "INTEGER",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "INTEGER",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "descripcion",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "monto",
+          "tipo": "REAL",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "fecha",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "fecha_vencimiento",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "estado",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_por",
+          "tipo": "INTEGER",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [
+        "idx_fiados_cliente_id"
+      ],
+      "relaciones": [
+        {
+          "columna": "creado_por",
+          "referencia": "usuarios.id"
+        },
+        {
+          "columna": "producto_id",
+          "referencia": "productos.id"
+        },
+        {
+          "columna": "cliente_id",
+          "referencia": "clientes.id"
+        }
+      ]
+    },
+    {
+      "nombre": "pagos",
+      "filas": 0,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "INTEGER",
+          "pk": true,
+          "nulo": true
+        },
+        {
+          "nombre": "fiado_id",
+          "tipo": "INTEGER",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "monto",
+          "tipo": "REAL",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "fecha",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [],
+      "relaciones": [
+        {
+          "columna": "fiado_id",
+          "referencia": "fiados.id"
+        }
+      ]
+    },
+    {
+      "nombre": "sesiones",
+      "filas": 0,
+      "columnas": [
+        {
+          "nombre": "id",
+          "tipo": "INTEGER",
+          "pk": true,
+          "nulo": true
+        },
+        {
+          "nombre": "usuario_id",
+          "tipo": "INTEGER",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "token",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "TEXT",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [],
+      "relaciones": [
+        {
+          "columna": "usuario_id",
+          "referencia": "usuarios.id"
+        }
+      ]
+    }
+  ]
+}
