@@ -9,6 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # A nivel de job para poder consultarlo en el "if" del paso de Sonar:
+      # el contexto secrets no esta disponible en condiciones de paso.
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # node:sqlite (DatabaseSync) existe desde 22.5, no en 20
           cache: 'npm'
 
       - name: Instalar dependencias
@@ -25,8 +29,11 @@ jobs:
       - name: Correr tests con cobertura
         run: npm test
 
+      # Se salta mientras no exista el secreto SONAR_TOKEN, para no tumbar el
+      # build. Al configurarlo (junto a organization/projectKey reales en
+      # sonar-project.properties) el analisis se activa solo.
       - name: Analisis SonarCloud
+        if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
