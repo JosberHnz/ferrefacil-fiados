@@ -5,3 +5,6 @@ coverage/
 *.log
 .DS_Store
 tests/test.db*
+.vercel
+.env*
+!.env.example
