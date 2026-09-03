@@ -148,3 +148,23 @@ describe('enrutado de paginas', () => {
     expect(res.text).toContain('href="/app"');
   });
 });
+
+describe('animaciones de la landing', () => {
+  test('el script va en archivo aparte: la CSP prohibe scripts inline', async () => {
+    const res = await request(app).get('/');
+    // <script> sin src seria bloqueado por script-src 'self'
+    expect(res.text).not.toMatch(/<script(?![^>]*\ssrc=)[^>]*>/);
+    expect(res.text).toContain('src="/landing.js"');
+  });
+
+  test('landing.js se sirve como estatico', async () => {
+    const res = await request(app).get('/landing.js');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('IntersectionObserver');
+  });
+
+  test('respeta prefers-reduced-motion', async () => {
+    const res = await request(app).get('/');
+    expect(res.text).toContain('prefers-reduced-motion');
+  });
+});

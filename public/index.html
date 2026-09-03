@@ -8,6 +8,7 @@
 <title>Fiados Ferrefacil · Control de fiados con mora automatica</title>
 <link rel="icon" href="/icons/icon-192.png">
 <link rel="manifest" href="/manifest.json">
+<script src="/landing.js"></script>
 <style>
 :root{
   --cream:#FAF6EF; --paper:#fff; --charcoal:#23272A; --steel:#5C6B78;
@@ -146,6 +147,66 @@ footer a{color:#C9CFD3;text-decoration:none;margin-left:20px}
 footer a:hover{color:#fff}
 footer .fl a:first-child{margin-left:0}
 
+/* ================= ANIMACIONES =================
+   El estado inicial oculto cuelga de [data-anim="on"], atributo que pone
+   landing.js solo si puede animar. Sin JS, nada de esto aplica y la pagina
+   se ve completa. */
+
+@keyframes surgir{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes surgirEscala{from{opacity:0;transform:translateY(30px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes flotar{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes latir{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes llenar{from{width:0}to{width:62%}}
+
+/* --- entrada del hero: en cuanto carga, escalonada --- */
+.hero .eyebrow{animation:surgir .65s .05s both}
+.hero h1{animation:surgir .65s .16s both}
+.hero .lead{animation:surgir .65s .27s both}
+.hero-cta{animation:surgir .65s .38s both}
+.hero-note{animation:surgir .65s .49s both}
+.mock{animation:surgirEscala .85s .34s both,flotar 7s 1.4s ease-in-out infinite}
+.mock-row{animation:surgir .55s both}
+.mock-row:nth-child(2){animation-delay:.62s}
+.mock-row:nth-child(3){animation-delay:.74s}
+.mock-row:nth-child(4){animation-delay:.86s}
+/* El dato que vende el producto: parpadeo lento sobre la mora. */
+.mock-row:nth-child(2) .mora{animation:latir 2.6s 1.8s ease-in-out infinite}
+
+/* Barra de abono: se llena sola, ilustra el pago parcial. */
+.progreso{height:4px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+.progreso i{display:block;height:100%;width:62%;background:var(--teal);border-radius:3px}
+[data-anim="on"] .progreso i{animation:llenar 1.5s 1.5s cubic-bezier(.22,.9,.3,1) both}
+
+/* --- revelado al hacer scroll --- */
+[data-anim="on"] .reveal{opacity:0;transform:translateY(22px)}
+[data-anim="on"] .reveal.visible{
+  opacity:1;transform:none;
+  transition:opacity .75s cubic-bezier(.16,.84,.44,1),transform .75s cubic-bezier(.16,.84,.44,1);
+}
+
+/* --- microinteracciones --- */
+.feature,.step,.panel{transition:transform .22s ease,box-shadow .22s ease}
+.feature:hover,.step:hover,.panel:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(35,39,42,.14)}
+.feature .ico{transition:transform .22s ease}
+.feature:hover .ico{transform:scale(1.16) rotate(-6deg)}
+.btn{transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(232,89,12,.28)}
+.btn.ghost:hover{box-shadow:none}
+.strip b{transition:transform .22s ease}
+.strip-inner>div:hover b{transform:scale(1.1)}
+.nav .links a:not(.btn){position:relative}
+.nav .links a:not(.btn)::after{
+  content:"";position:absolute;left:0;bottom:-4px;height:2px;width:100%;
+  background:var(--orange);transform:scaleX(0);transform-origin:right;transition:transform .25s ease;
+}
+.nav .links a:not(.btn):hover::after{transform:scaleX(1);transform-origin:left}
+
+/* Quien pide menos movimiento no recibe ninguno. */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .reveal{opacity:1 !important;transform:none !important}
+}
+
 /* ---------- responsive ---------- */
 @media(max-width:860px){
   .hero-inner,.split,.features,.steps,.demo{grid-template-columns:1fr}
@@ -208,6 +269,7 @@ footer .fl a:first-child{margin-left:0}
         </div>
         <p class="mock-desc">Tornillos y clavos varios</p>
         <span class="badge parcial">Parcial</span><span class="mora">4 días de mora</span>
+        <div class="progreso"><i></i></div>
       </div>
       <div class="mock-row">
         <div class="mock-top">
@@ -223,23 +285,23 @@ footer .fl a:first-child{margin-left:0}
 
 <div class="strip">
   <div class="strip-inner">
-    <div><b>0</b><span>cuentas hechas a mano</span></div>
-    <div><b>100%</b><span>de los fiados con fecha</span></div>
-    <div><b>Offline</b><span>consulta sin señal</span></div>
-    <div><b>1 toque</b><span>para registrar un abono</span></div>
+    <div class="reveal" data-delay="0"><b>0</b><span>cuentas hechas a mano</span></div>
+    <div class="reveal" data-delay="90"><b>100%</b><span>de los fiados con fecha</span></div>
+    <div class="reveal" data-delay="180"><b>Offline</b><span>consulta sin señal</span></div>
+    <div class="reveal" data-delay="270"><b>1 toque</b><span>para registrar un abono</span></div>
   </div>
 </div>
 
 <main>
 
 <section id="problema">
-  <h2>El cuaderno se moja, se pierde y no saca cuentas</h2>
-  <p class="section-intro">
+  <h2 class="reveal">El cuaderno se moja, se pierde y no saca cuentas</h2>
+  <p class="section-intro reveal" data-delay="90">
     Buena parte de la venta de una ferretería se hace al fiado: el cliente se lleva
     el material y paga después. Ese control en papel falla siempre por lo mismo.
   </p>
   <div class="split">
-    <div class="panel before">
+    <div class="panel before reveal">
       <h3>📓 Con el cuaderno</h3>
       <ul>
         <li>Nadie sabe de memoria cuánto debe cada cliente hoy.</li>
@@ -248,7 +310,7 @@ footer .fl a:first-child{margin-left:0}
         <li>Si el cuaderno se moja o se traspapela, se pierde dinero real.</li>
       </ul>
     </div>
-    <div class="panel after">
+    <div class="panel after reveal" data-delay="130">
       <h3>🔧 Con Fiados Ferrefacil</h3>
       <ul>
         <li>El saldo de cada cliente sale en pantalla al instante.</li>
@@ -261,35 +323,35 @@ footer .fl a:first-child{margin-left:0}
 </section>
 
 <section id="funciones">
-  <h2>Lo que hace</h2>
-  <p class="section-intro">Sin funciones de más: lo que el mostrador necesita para cobrar a tiempo.</p>
+  <h2 class="reveal">Lo que hace</h2>
+  <p class="section-intro reveal" data-delay="90">Sin funciones de más: lo que el mostrador necesita para cobrar a tiempo.</p>
   <div class="features">
-    <div class="feature">
+    <div class="feature reveal" data-delay="0">
       <span class="ico">⏱️</span>
       <h3>Mora automática</h3>
       <p>Cada fiado lleva fecha de vencimiento. Pasada esa fecha, el sistema cuenta los días de atraso sin que nadie haga la resta.</p>
     </div>
-    <div class="feature">
+    <div class="feature reveal" data-delay="110">
       <span class="ico">💵</span>
       <h3>Abonos parciales</h3>
       <p>El cliente paga lo que puede. El saldo baja solo y el fiado pasa a «parcial» hasta quedar en cero.</p>
     </div>
-    <div class="feature">
+    <div class="feature reveal" data-delay="220">
       <span class="ico">👥</span>
       <h3>Ficha por cliente</h3>
       <p>Teléfono, dirección y límite de crédito. De un vistazo se ve cuánto debe y desde cuándo.</p>
     </div>
-    <div class="feature">
+    <div class="feature reveal" data-delay="0">
       <span class="ico">📱</span>
       <h3>Se instala y anda sin señal</h3>
       <p>Se agrega a la pantalla de inicio del celular. La interfaz abre sin internet y muestra lo último consultado.</p>
     </div>
-    <div class="feature">
+    <div class="feature reveal" data-delay="110">
       <span class="ico">🔒</span>
       <h3>Entrada con contraseña</h3>
       <p>Sesión en cookie segura y permisos por rol: solo un administrador puede borrar registros.</p>
     </div>
-    <div class="feature">
+    <div class="feature reveal" data-delay="220">
       <span class="ico">📊</span>
       <h3>Estados claros</h3>
       <p>Pendiente, parcial o pagado. Se ve al momento a quién hay que cobrarle hoy.</p>
@@ -298,18 +360,18 @@ footer .fl a:first-child{margin-left:0}
 </section>
 
 <section id="como">
-  <h2>Cómo funciona</h2>
-  <p class="section-intro">Tres pasos en el mostrador, igual que con el cuaderno pero sin las cuentas.</p>
+  <h2 class="reveal">Cómo funciona</h2>
+  <p class="section-intro reveal" data-delay="90">Tres pasos en el mostrador, igual que con el cuaderno pero sin las cuentas.</p>
   <div class="steps">
-    <div class="step">
+    <div class="step reveal" data-delay="0">
       <h3>Registrás el cliente</h3>
       <p>Nombre y teléfono bastan. Si querés, le ponés un límite de crédito para no pasarte.</p>
     </div>
-    <div class="step">
+    <div class="step reveal" data-delay="130">
       <h3>Anotás el fiado</h3>
       <p>Qué se llevó, cuánto y para cuándo lo paga. Ahí queda guardado con su fecha.</p>
     </div>
-    <div class="step">
+    <div class="step reveal" data-delay="260">
       <h3>Cobrás y abonás</h3>
       <p>Cada pago que entra se registra y baja el saldo. La mora se actualiza sola.</p>
     </div>
@@ -317,7 +379,7 @@ footer .fl a:first-child{margin-left:0}
 </section>
 
 <section>
-  <div class="demo">
+  <div class="demo reveal">
     <div>
       <h2>Probala ahora mismo</h2>
       <p>Hay un usuario de demostración cargado. No hace falta registrarse.</p>
