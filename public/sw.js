@@ -1,5 +1,5 @@
-const CACHE_NAME = 'fiados-v3';
-const ESTATICOS = ['/index.html', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE_NAME = 'fiados-v4';
+const ESTATICOS = ['/index.html', '/landing.html', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
