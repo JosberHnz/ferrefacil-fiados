@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#E8590C">
+<meta name="description" content="Control de fiados con mora automatica para Ferreteria Ferrefacil">
+<title>Fiados · Ferrefacil</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png">
+<style>
+:root{
+  --cream:#FAF6EF; --paper:#fff; --charcoal:#23272A; --steel:#5C6B78;
+  --line:#E4DCCB; --orange:#E8590C; --orange-dark:#C44D0A;
+  --teal:#2F7A6E; --teal-light:#E1F2EE; --red:#C0392B; --red-light:#FBE3E0;
+  --amber:#B07A05; --amber-light:#FBF0D9; --radius:12px; --shadow:0 6px 20px rgba(35,39,42,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--cream);color:var(--charcoal)}
+header{background:var(--charcoal);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;margin:0}
+main{max-width:900px;margin:0 auto;padding:24px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+input,select,button{font-size:15px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);width:100%;box-sizing:border-box}
+button{background:var(--orange);color:#fff;border:none;cursor:pointer;width:auto;font-weight:600}
+button:hover{background:var(--orange-dark)}
+button.secondary{background:#fff;color:var(--charcoal);border:1px solid var(--line)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.row > *{flex:1;min-width:140px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:14px}
+.badge{padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
+.badge.pendiente{background:var(--amber-light);color:var(--amber)}
+.badge.parcial{background:#E8EEFB;color:#3457A6}
+.badge.pagado{background:var(--teal-light);color:var(--teal)}
+.mora{color:var(--red);font-weight:700}
+#login-screen{position:fixed;inset:0;background:var(--charcoal);display:flex;align-items:center;justify-content:center}
+.login-card{background:#fff;padding:30px;border-radius:var(--radius);width:320px}
+.hidden{display:none !important}
+.error{background:var(--red-light);color:var(--red);padding:10px;border-radius:8px;font-size:13px;margin-bottom:10px}
+.offline-banner{background:var(--amber-light);color:var(--amber);padding:8px 24px;font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h2>Fiados · Ferrefacil</h2>
+    <p style="color:var(--steel);font-size:14px">Iniciá sesión para continuar</p>
+    <div id="login-error" class="error hidden"></div>
+    <form id="login-form">
+      <div class="row"><input id="login-email" type="email" placeholder="correo" value="demo@ferrefacil.com" required></div>
+      <div class="row"><input id="login-password" type="password" placeholder="contraseña" value="Demo2026!" required></div>
+      <button type="submit">Entrar</button>
+    </form>
+    <p style="margin:16px 0 0;font-size:13px"><a href="/" style="color:var(--steel)">← Volver al inicio</a></p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div id="offline-banner" class="offline-banner hidden">Estás sin conexión. Mostrando los últimos datos guardados.</div>
+  <header>
+    <h1>🔧 Fiados · Ferrefacil</h1>
+    <button class="secondary" id="btn-logout">Salir</button>
+  </header>
+  <main>
+    <div class="card">
+      <h3>Nuevo cliente</h3>
+      <div class="row">
+        <input id="c-nombre" placeholder="Nombre del cliente">
+        <input id="c-telefono" placeholder="Teléfono">
+      </div>
+      <button id="btn-crear-cliente">Agregar cliente</button>
+    </div>
+
+    <div class="card">
+      <h3>Registrar fiado</h3>
+      <div class="row">
+        <select id="f-cliente"></select>
+        <input id="f-desc" placeholder="Descripción (ej. cemento 2 sacos)">
+      </div>
+      <div class="row">
+        <input id="f-monto" type="number" placeholder="Monto (L.)">
+        <input id="f-vence" type="date">
+      </div>
+      <button id="btn-crear-fiado">Registrar fiado</button>
+    </div>
+
+    <div class="card">
+      <h3>Fiados</h3>
+      <table>
+        <thead><tr><th>Cliente</th><th>Descripción</th><th>Saldo</th><th>Mora</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="tabla-fiados"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

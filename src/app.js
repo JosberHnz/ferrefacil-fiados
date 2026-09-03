@@ -40,6 +40,13 @@ app.use('/api/clientes', clientesRoutes);
 app.use('/api/fiados', fiadosRoutes);
 app.use('/api/health', healthRoutes);
 
+// La raiz sirve la landing (public/index.html). La aplicacion en si vive en
+// /app; se declara explicitamente para que la URL limpia funcione igual en
+// local (express.static no resuelve extensiones) y en Vercel.
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'app.html'));
+});
+
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // 404 manejado explicitamente (entregable 3).

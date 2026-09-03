@@ -1,5 +1,11 @@
-const CACHE_NAME = 'fiados-v4';
-const ESTATICOS = ['/index.html', '/landing.html', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE_NAME = 'fiados-v5';
+// '/' es la landing; '/app.html' es el shell de la aplicacion. Se precachea
+// el .html y no la URL limpia '/app': si una entrada de addAll fallara, la
+// instalacion entera del service worker se abortaria.
+const ESTATICOS = [
+  '/', '/index.html', '/app.html', '/app.js',
+  '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -30,6 +36,16 @@ self.addEventListener('fetch', event => {
           headers: { 'Content-Type': 'application/json' }
         })
       )
+    );
+    return;
+  }
+
+  // /app es una URL limpia que resuelve el servidor, asi que no esta en la
+  // cache con ese nombre: se le sirve el shell de /app.html para que la
+  // aplicacion tambien abra sin conexion.
+  if (event.request.mode === 'navigate' && url.pathname === '/app') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/app.html'))
     );
     return;
   }

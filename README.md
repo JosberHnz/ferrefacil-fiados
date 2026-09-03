@@ -8,7 +8,7 @@ La ferretería vendía al fiado usando un cuaderno físico. No había forma ráp
 
 ## Stack
 
-Node.js + Express + SQLite (better-sqlite3), sesiones por cookie httpOnly, Helmet para headers de seguridad, PWA con Service Worker, tests con Jest + Supertest, CI con GitHub Actions + SonarCloud, desplegado en Render.
+Node.js + Express + SQLite (`node:sqlite`, integrado en Node 22.5+), sesiones por cookie httpOnly, Helmet para headers de seguridad, PWA con Service Worker, tests con Jest + Supertest, CI con GitHub Actions + SonarCloud, desplegado en Vercel.
 
 ## Correr en local
 
@@ -41,9 +41,12 @@ src/
   seed.js          datos de ejemplo
   export-schema.js genera docs/db-export.json desde la DB real
 public/
-  index.html/app.js  SPA que consume la API
+  index.html         landing publica del producto (ruta /)
+  app.html/app.js    SPA que consume la API (ruta /app)
   manifest.json/sw.js  PWA
   presentacion.html  presentacion autocontenida (entregable 10)
+api/
+  index.js         entry point serverless para Vercel
 docs/
   arquitectura.md    diagrama C4 + decisiones
   adr/               2 ADRs
@@ -57,4 +60,11 @@ Ver `.env.example`. En producción (Render) se configuran en el dashboard.
 
 ## Despliegue
 
-Ver `render.yaml` — blueprint listo para Render (disco persistente para que SQLite no se borre entre despliegues).
+En produccion corre en Vercel (`vercel.json` + `api/index.js`), en https://josberhnz.lat
+
+Limitacion conocida: en Vercel la base vive en `/tmp`, que es efimero y propio de
+cada instancia, asi que los datos se reinician en cada arranque en frio. El esquema
+y el usuario demo se recrean solos, asi que la demo siempre arranca usable.
+
+Para persistencia real hace falta un host con disco: ver `render.yaml`, blueprint
+listo para Render con disco persistente montado en `/var/data`.

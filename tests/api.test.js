@@ -128,3 +128,23 @@ describe('validaciones', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('enrutado de paginas', () => {
+  test('la raiz sirve la landing, no la aplicacion', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('con la mora ya calculada');
+    expect(res.text).not.toContain('id="login-form"');
+  });
+
+  test('/app sirve el shell de la aplicacion con el login', async () => {
+    const res = await request(app).get('/app');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('id="login-form"');
+  });
+
+  test('la landing enlaza al login en /app', async () => {
+    const res = await request(app).get('/');
+    expect(res.text).toContain('href="/app"');
+  });
+});

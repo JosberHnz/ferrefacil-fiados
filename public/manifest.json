@@ -2,7 +2,7 @@
   "name": "Fiados Ferrefacil",
   "short_name": "Fiados",
   "description": "Control de fiados con mora automatica para Ferreteria Ferrefacil",
-  "start_url": "/index.html",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "background_color": "#FAF6EF",
