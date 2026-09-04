@@ -125,6 +125,31 @@ async function precargarDemo(){
   } catch { /* sin demo configurada: el formulario queda vacio */ }
 }
 
+// El boton de Google solo se muestra si el servidor tiene la integracion
+// configurada; asi no se ofrece un camino que terminaria en error.
+async function prepararGoogle(){
+  try {
+    const res = await fetch(API + '/auth/google/disponible', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const { disponible } = await res.json();
+    if (disponible) document.getElementById('google-bloque').classList.remove('hidden');
+  } catch { /* se queda oculto */ }
+}
+
+// El callback de Google redirige con ?error= cuando algo falla (por ejemplo
+// una cuenta sin acceso). Se muestra en el mismo recuadro del formulario.
+function mostrarErrorDeUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const error = params.get('error');
+  if (!error) return;
+
+  const box = document.getElementById('login-error');
+  box.textContent = error;
+  box.classList.remove('hidden');
+  // Se limpia la URL para que al recargar no reaparezca el mensaje.
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
 // Verifica sesion existente al cargar
 (async () => {
   try {
@@ -132,7 +157,9 @@ async function precargarDemo(){
     showApp();
   } catch {
     showLogin();
+    mostrarErrorDeUrl();
     precargarDemo();
+    prepararGoogle();
   }
 })();
 

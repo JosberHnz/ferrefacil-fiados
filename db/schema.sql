@@ -16,6 +16,17 @@ create table if not exists usuarios (
   creado_en     timestamptz not null default now()
 );
 
+-- Campos para el inicio de sesion con Google. Se anaden por separado para
+-- que el esquema siga siendo aplicable sobre una base ya creada.
+alter table usuarios add column if not exists google_id  text unique;
+alter table usuarios add column if not exists nombre     text;
+alter table usuarios add column if not exists avatar_url text;
+
+-- Una cuenta creada por Google no tiene contrasena local, asi que la columna
+-- deja de ser obligatoria. auth.js rechaza el login por formulario cuando
+-- password_hash es null, de modo que esas cuentas solo entran por Google.
+alter table usuarios alter column password_hash drop not null;
+
 -- ============================================================
 -- CLIENTES
 -- ============================================================

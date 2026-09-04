@@ -11,6 +11,11 @@ const { router: publicoRoutes } = require('./routes/publico');
 
 const app = express();
 
+// Vercel termina el TLS en su edge y habla HTTP con la funcion. Sin esto
+// req.protocol seria 'http' y el redirect_to que se manda a Google saldria
+// con esquema incorrecto, y Google lo rechazaria por no coincidir.
+app.set('trust proxy', 1);
+
 // ===================== SEGURIDAD =====================
 // Content-Security-Policy propia (entregable 8): protege contra XSS al
 // restringir de donde puede cargar scripts/estilos la pagina.

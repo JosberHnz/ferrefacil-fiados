@@ -245,3 +245,86 @@ describe('tipos que devuelve la API', () => {
     expect(fiado.body.fecha_vencimiento).toBe('2030-01-01');
   });
 });
+
+describe('inicio de sesion con Google', () => {
+  const google = require('../src/oauth-google');
+
+  afterEach(() => {
+    delete process.env.GOOGLE_EMAILS_PERMITIDOS;
+    delete process.env.GOOGLE_DOMINIO_PERMITIDO;
+  });
+
+  test('por defecto ninguna cuenta nueva de Google tiene acceso', () => {
+    // Sin esto, cualquier cuenta de Google del mundo veria la cartera:
+    // todas las rutas protegidas se conforman con que exista sesion.
+    expect(google.permitido('cualquiera@gmail.com')).toBe(false);
+  });
+
+  test('la lista de permitidos habilita correos concretos', () => {
+    process.env.GOOGLE_EMAILS_PERMITIDOS = 'jefe@ferrefacil.com, otro@gmail.com';
+    expect(google.permitido('jefe@ferrefacil.com')).toBe(true);
+    expect(google.permitido('otro@gmail.com')).toBe(true);
+    expect(google.permitido('intruso@gmail.com')).toBe(false);
+  });
+
+  test('el dominio permitido habilita a todo el dominio', () => {
+    process.env.GOOGLE_DOMINIO_PERMITIDO = 'ferrefacil.com';
+    expect(google.permitido('quien.sea@ferrefacil.com')).toBe(true);
+    expect(google.permitido('quien.sea@otracosa.com')).toBe(false);
+  });
+
+  test('el challenge PKCE es el SHA-256 del verifier en base64url', () => {
+    const crypto = require('crypto');
+    const v = google.crearVerifier();
+    const esperado = crypto.createHash('sha256').update(v).digest('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    expect(google.challengeDe(v)).toBe(esperado);
+    expect(v).not.toMatch(/[+/=]/); // base64url, seguro en una URL
+  });
+
+  test('cada intento genera un verifier distinto', () => {
+    expect(google.crearVerifier()).not.toBe(google.crearVerifier());
+  });
+
+  test('/api/auth/google redirige a Supabase con PKCE y deja la cookie', async () => {
+    const res = await request(app).get('/api/auth/google');
+    expect(res.status).toBe(302);
+
+    const destino = new URL(res.headers.location);
+    expect(destino.searchParams.get('provider')).toBe('google');
+    expect(destino.searchParams.get('code_challenge_method')).toBe('s256');
+    expect(destino.searchParams.get('code_challenge')).toBeTruthy();
+    expect(destino.searchParams.get('redirect_to')).toContain('/api/auth/callback');
+
+    // El verifier tiene que quedar en cookie httpOnly, nunca en la URL.
+    const cookies = String(res.headers['set-cookie']);
+    expect(cookies).toContain('g_verifier');
+    expect(cookies).toContain('HttpOnly');
+    expect(destino.search).not.toContain('verifier');
+  });
+
+  test('el callback sin codigo no crea sesion', async () => {
+    const res = await request(app).get('/api/auth/callback');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('error=');
+    expect(String(res.headers['set-cookie'] || '')).not.toContain('session=');
+  });
+
+  test('el callback con codigo pero sin verifier es rechazado', async () => {
+    const res = await request(app).get('/api/auth/callback?code=inventado');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('error=');
+    expect(String(res.headers['set-cookie'] || '')).not.toContain('session=');
+  });
+
+  test('una cuenta sin password_hash no puede entrar por formulario', async () => {
+    await db.query(
+      "insert into usuarios (email, rol, google_id) values ($1, 'vendedor', $2)",
+      ['solo.google@ferrefacil.com', 'gid-test-1']
+    );
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'solo.google@ferrefacil.com', password: 'loquesea' });
+    expect(res.status).toBe(401);
+  });
+});
