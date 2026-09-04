@@ -3,51 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#E8590C">
+<meta name="theme-color" content="#1F5468">
 <meta name="description" content="Control de fiados con mora automatica para Ferreteria Ferrefacil">
 <title>Fiados · Ferrefacil</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icons/icon-192.png">
 <style>
 :root{
-  --cream:#FAF6EF; --paper:#fff; --charcoal:#23272A; --steel:#5C6B78;
-  --line:#E4DCCB; --orange:#E8590C; --orange-dark:#C44D0A;
-  --teal:#2F7A6E; --teal-light:#E1F2EE; --red:#C0392B; --red-light:#FBE3E0;
-  --amber:#B07A05; --amber-light:#FBF0D9; --radius:12px; --shadow:0 6px 20px rgba(35,39,42,.10);
+  /* Neutros frios */
+  --bg:#F4F6F7; --paper:#FFFFFF;
+  --ink:#182028; --ink-soft:#24303B;
+  --muted:#5D6C7B; --line:#DDE3E8;
+  /* Texto sobre superficies oscuras */
+  --on-dark:#C2CCD4; --on-dark-soft:#8B98A4;
+  /* Acento: azul pizarra */
+  --accent:#1F5468; --accent-dark:#143C4C;
+  --accent-soft:#E7EFF2; --accent-tint:#7FB3C4;
+  /* Estados, en tonos apagados */
+  --ok:#2C6A51; --ok-soft:#E4EEE9;
+  --warn:#7E621B; --warn-soft:#F2ECDC;
+  --danger:#9E3A31; --danger-soft:#F4E3E1;
+  --info:#3A5687; --info-soft:#E6EBF5;
+  --radius:12px; --shadow:0 6px 20px rgba(24,32,40,.10);
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--cream);color:var(--charcoal)}
-header{background:var(--charcoal);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--ink);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
 header h1{font-size:18px;margin:0}
 main{max-width:900px;margin:0 auto;padding:24px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
 input,select,button{font-size:15px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);width:100%;box-sizing:border-box}
-button{background:var(--orange);color:#fff;border:none;cursor:pointer;width:auto;font-weight:600}
-button:hover{background:var(--orange-dark)}
-button.secondary{background:#fff;color:var(--charcoal);border:1px solid var(--line)}
+button{background:var(--accent);color:#fff;border:none;cursor:pointer;width:auto;font-weight:600}
+button:hover{background:var(--accent-dark)}
+button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .row > *{flex:1;min-width:140px}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:14px}
 .badge{padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
-.badge.pendiente{background:var(--amber-light);color:var(--amber)}
-.badge.parcial{background:#E8EEFB;color:#3457A6}
-.badge.pagado{background:var(--teal-light);color:var(--teal)}
-.mora{color:var(--red);font-weight:700}
-#login-screen{position:fixed;inset:0;background:var(--charcoal);display:flex;align-items:center;justify-content:center}
+.badge.pendiente{background:var(--warn-soft);color:var(--warn)}
+.badge.parcial{background:var(--info-soft);color:var(--info)}
+.badge.pagado{background:var(--ok-soft);color:var(--ok)}
+.mora{color:var(--danger);font-weight:700}
+#login-screen{position:fixed;inset:0;background:var(--ink);display:flex;align-items:center;justify-content:center}
 .login-card{background:#fff;padding:30px;border-radius:var(--radius);width:320px}
 .hidden{display:none !important}
-.error{background:var(--red-light);color:var(--red);padding:10px;border-radius:8px;font-size:13px;margin-bottom:10px}
-.offline-banner{background:var(--amber-light);color:var(--amber);padding:8px 24px;font-size:13px;text-align:center}
-.separador{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--steel);font-size:12px}
+.error{background:var(--danger-soft);color:var(--danger);padding:10px;border-radius:8px;font-size:13px;margin-bottom:10px}
+.offline-banner{background:var(--warn-soft);color:var(--warn);padding:8px 24px;font-size:13px;text-align:center}
+.separador{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--muted);font-size:12px}
 .separador::before,.separador::after{content:"";flex:1;height:1px;background:var(--line)}
 .btn-google{
   display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
   padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;
-  color:var(--charcoal);text-decoration:none;font-size:15px;font-weight:600;
+  color:var(--ink);text-decoration:none;font-size:15px;font-weight:600;
   transition:background .15s,box-shadow .15s;
 }
-.btn-google:hover{background:#F7F4EE;box-shadow:0 2px 8px rgba(35,39,42,.10)}
+.btn-google:hover{background:var(--bg);box-shadow:0 2px 8px rgba(24,32,40,.10)}
 </style>
 </head>
 <body>
@@ -55,7 +66,7 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
 <div id="login-screen">
   <div class="login-card">
     <h2>Fiados · Ferrefacil</h2>
-    <p style="color:var(--steel);font-size:14px">Iniciá sesión para continuar</p>
+    <p style="color:var(--muted);font-size:14px">Iniciá sesión para continuar</p>
     <div id="login-error" class="error hidden"></div>
     <form id="login-form">
       <div class="row"><input id="login-email" type="email" placeholder="correo" autocomplete="username" required></div>
@@ -76,7 +87,7 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
       </a>
     </div>
 
-    <p style="margin:16px 0 0;font-size:13px"><a href="/" style="color:var(--steel)">← Volver al inicio</a></p>
+    <p style="margin:16px 0 0;font-size:13px"><a href="/" style="color:var(--muted)">← Volver al inicio</a></p>
   </div>
 </div>
 
