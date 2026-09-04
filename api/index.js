@@ -4,11 +4,8 @@
 // corre un proceso permanente. Vercel invoca una funcion por request, asi
 // que aqui solo se exporta la app y la plataforma la envuelve.
 //
-// El filesystem de Vercel es de solo lectura salvo /tmp, por eso la base
-// se crea ahi. IMPORTANTE: /tmp es efimero y propio de cada instancia, o
-// sea que los datos se reinician en cada arranque en frio. Sirve para la
-// demo, no para produccion real; para eso hace falta un host con disco
-// persistente (ver render.yaml) o una base de datos en red.
-process.env.DB_PATH = process.env.DB_PATH || '/tmp/fiados.db';
-
+// Ya no se fija DB_PATH: los datos viven en PostgreSQL (Supabase) y la
+// conexion sale de DATABASE_URL, definida en las variables de entorno del
+// proyecto. Con esto desaparece la limitacion de /tmp, que reiniciaba la
+// base en cada arranque en frio.
 module.exports = require('../src/app');

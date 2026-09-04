@@ -3,10 +3,10 @@ const db = require('../db');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   let dbOk = true;
   try {
-    db.prepare('SELECT 1').get();
+    await db.query('select 1');
   } catch (e) {
     dbOk = false;
   }
@@ -14,6 +14,7 @@ router.get('/', (req, res) => {
   res.json({
     status: dbOk ? 'ok' : 'degraded',
     db: dbOk,
+    motor: 'postgres',
     uptime_seconds: Math.round(process.uptime()),
     timestamp: new Date().toISOString()
   });

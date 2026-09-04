@@ -1,84 +1,97 @@
-const { DatabaseSync } = require('node:sqlite');
-const path = require('path');
-const fs = require('fs');
-const bcrypt = require('bcryptjs');
+// Capa de acceso a PostgreSQL (Supabase).
+//
+// Sustituye al node:sqlite sincrono anterior. A diferencia de aquel, este
+// modulo no tiene efectos secundarios al importarse: no crea tablas ni
+// inserta usuarios. El esquema se aplica con `npm run db:migrate` y los
+// datos demo con `npm run seed`, que es lo que permite que los tests
+// controlen contra que base corren.
+const { Pool, types } = require('pg');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'fiados.db');
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+// --- Conversion de tipos ---
+// Por defecto pg entrega numeric como string ("850.00"), para no perder
+// precision en valores enormes. Aqui los montos son dinero de ferreteria y
+// la API siempre devolvio numeros, asi que se convierten: sin esto,
+// res.body.saldo pasaria de 500 a "500.00" y el frontend concatenaria
+// cadenas en vez de sumar.
+types.setTypeParser(types.builtins.NUMERIC, parseFloat);
 
-const db = new DatabaseSync(DB_PATH);
-db.exec('PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
+// Y date lo entrega como objeto Date a medianoche LOCAL, lo que desplaza el
+// dia segun la zona horaria del servidor. mora.js trabaja con 'YYYY-MM-DD',
+// asi que se deja la cadena cruda tal como la envia PostgreSQL.
+types.setTypeParser(types.builtins.DATE, v => v);
 
-// ===================== ESQUEMA =====================
-// 6 tablas, todas con llave primaria.
-// Relaciones: fiados.cliente_id -> clientes.id
-//             pagos.fiado_id    -> fiados.id
-//             sesiones.usuario_id -> usuarios.id
-//             fiados.producto_id -> productos.id
-db.exec(`
-CREATE TABLE IF NOT EXISTS usuarios (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  rol TEXT NOT NULL DEFAULT 'vendedor' CHECK(rol IN ('admin','vendedor','demo')),
-  creado_en TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS clientes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  nombre TEXT NOT NULL,
-  telefono TEXT,
-  direccion TEXT,
-  limite_credito REAL NOT NULL DEFAULT 0,
-  creado_en TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_clientes_nombre ON clientes(nombre);
-
-CREATE TABLE IF NOT EXISTS productos (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  nombre TEXT NOT NULL,
-  precio REAL NOT NULL,
-  stock INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS fiados (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
-  producto_id INTEGER REFERENCES productos(id),
-  descripcion TEXT NOT NULL,
-  monto REAL NOT NULL,
-  fecha TEXT NOT NULL DEFAULT (date('now')),
-  fecha_vencimiento TEXT NOT NULL,
-  estado TEXT NOT NULL DEFAULT 'pendiente' CHECK(estado IN ('pendiente','pagado','parcial')),
-  creado_por INTEGER REFERENCES usuarios(id),
-  creado_en TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_fiados_cliente_id ON fiados(cliente_id);
-
-CREATE TABLE IF NOT EXISTS pagos (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  fiado_id INTEGER NOT NULL REFERENCES fiados(id) ON DELETE CASCADE,
-  monto REAL NOT NULL,
-  fecha TEXT NOT NULL DEFAULT (date('now')),
-  creado_en TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS sesiones (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-  token TEXT UNIQUE NOT NULL,
-  creado_en TEXT NOT NULL DEFAULT (datetime('now'))
-);
-`);
-
-// ===================== SEED MINIMO =====================
-// Usuario demo, para que el profesor pueda entrar sin credenciales reales del cliente.
-const demoExists = db.prepare('SELECT id FROM usuarios WHERE email = ?').get('demo@ferrefacil.com');
-if (!demoExists) {
-  const hash = bcrypt.hashSync('Demo2026!', 10);
-  db.prepare('INSERT INTO usuarios (email, password_hash, rol) VALUES (?,?,?)')
-    .run('demo@ferrefacil.com', hash, 'demo');
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    'Falta DATABASE_URL. En local se define en .env; en Vercel, en las ' +
+    'variables de entorno del proyecto.'
+  );
 }
 
-module.exports = db;
+// Esquema aislado para los tests, para no tocar los datos reales.
+const SCHEMA = process.env.DB_SCHEMA || 'public';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // El search_path se fija como parametro de arranque de la conexion. Hacerlo
+  // en el evento 'connect' con client.query() provoca una carrera: la consulta
+  // real puede empezar antes de que el SET termine.
+  options: `-c search_path=${SCHEMA}`,
+  // Supabase presenta un certificado propio; se cifra igual, no se valida
+  // la cadena. Es lo que hace el cliente oficial contra el pooler.
+  ssl: { rejectUnauthorized: false },
+  // El transaction pooler de Supabase ya multiplexa del lado del servidor.
+  // Abrir mas de una conexion por instancia serverless solo gasta cupo del
+  // proyecto sin ganar concurrencia.
+  max: Number(process.env.PG_POOL_MAX || 1),
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 10000
+});
+
+// Un pool huerfano no debe tumbar el proceso.
+pool.on('error', err => {
+  console.error('Error inesperado en el pool de PostgreSQL:', err.message);
+});
+
+/** Ejecuta una consulta y devuelve el resultado completo de pg. */
+function query(text, params) {
+  return pool.query(text, params);
+}
+
+/** Primera fila, o null si no hay ninguna. Equivale al .get() de SQLite. */
+async function one(text, params) {
+  const { rows } = await pool.query(text, params);
+  return rows[0] || null;
+}
+
+/** Todas las filas. Equivale al .all() de SQLite. */
+async function all(text, params) {
+  const { rows } = await pool.query(text, params);
+  return rows;
+}
+
+/** Filas afectadas. Equivale al .changes de SQLite. */
+async function run(text, params) {
+  const { rowCount } = await pool.query(text, params);
+  return rowCount;
+}
+
+/**
+ * Ejecuta varias consultas en una transaccion. El callback recibe el cliente;
+ * si lanza, se hace rollback.
+ */
+async function tx(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const resultado = await fn(client);
+    await client.query('commit');
+    return resultado;
+  } catch (e) {
+    await client.query('rollback');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { pool, query, one, all, run, tx, SCHEMA };

@@ -5,37 +5,47 @@ const { requireAuth, requireAdmin } = require('../auth');
 const router = express.Router();
 router.use(requireAuth);
 
-// GET /api/clientes?buscar=texto  -> busqueda por nombre (indice idx_clientes_nombre)
-router.get('/', (req, res) => {
-  const { buscar } = req.query;
-  const rows = buscar
-    ? db.prepare('SELECT * FROM clientes WHERE nombre LIKE ? ORDER BY nombre').all(`%${buscar}%`)
-    : db.prepare('SELECT * FROM clientes ORDER BY nombre').all();
-  res.json(rows);
-});
+// Envuelve un handler async para que un rechazo llegue al manejador de
+// errores de Express en vez de quedar como promesa no capturada.
+const asyncHandler = fn => (req, res, next) => fn(req, res, next).catch(next);
 
-router.get('/:id', (req, res) => {
-  const cliente = db.prepare('SELECT * FROM clientes WHERE id = ?').get(req.params.id);
+// GET /api/clientes?buscar=texto
+router.get('/', asyncHandler(async (req, res) => {
+  const { buscar } = req.query;
+  // ILIKE en vez de LIKE: la busqueda ahora no distingue mayusculas, y el
+  // indice idx_clientes_nombre esta creado sobre lower(nombre).
+  const rows = buscar
+    ? await db.all('select * from clientes where nombre ilike $1 order by nombre', [`%${buscar}%`])
+    : await db.all('select * from clientes order by nombre');
+  res.json(rows);
+}));
+
+router.get('/:id', asyncHandler(async (req, res) => {
+  const cliente = await db.one('select * from clientes where id = $1', [req.params.id]);
   if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
   res.json(cliente);
-});
+}));
 
-router.post('/', (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { nombre, telefono, direccion, limite_credito } = req.body || {};
   if (!nombre || !nombre.trim()) return res.status(400).json({ error: 'nombre es requerido' });
 
-  const info = db.prepare(
-    'INSERT INTO clientes (nombre, telefono, direccion, limite_credito) VALUES (?,?,?,?)'
-  ).run(nombre.trim(), telefono || null, direccion || null, Number(limite_credito) || 0);
+  // RETURNING evita la segunda consulta que hacia falta con lastInsertRowid.
+  const cliente = await db.one(
+    `insert into clientes (nombre, telefono, direccion, limite_credito)
+     values ($1, $2, $3, $4)
+     returning *`,
+    [nombre.trim(), telefono || null, direccion || null, Number(limite_credito) || 0]
+  );
 
-  res.status(201).json(db.prepare('SELECT * FROM clientes WHERE id = ?').get(info.lastInsertRowid));
-});
+  res.status(201).json(cliente);
+}));
 
 // Politica de acceso: borrar clientes requiere rol admin.
-router.delete('/:id', requireAdmin, (req, res) => {
-  const info = db.prepare('DELETE FROM clientes WHERE id = ?').run(req.params.id);
-  if (info.changes === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const borrados = await db.run('delete from clientes where id = $1', [req.params.id]);
+  if (borrados === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;

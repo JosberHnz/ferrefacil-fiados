@@ -109,6 +109,22 @@ async function cargarTodo(){
 window.addEventListener('offline', () => document.getElementById('offline-banner').classList.remove('hidden'));
 window.addEventListener('online', () => document.getElementById('offline-banner').classList.add('hidden'));
 
+// Precarga las credenciales de la cuenta demo, si el servidor tiene una
+// configurada. Antes venian escritas en el value= del HTML; ahora salen de
+// DEMO_EMAIL/DEMO_PASSWORD, asi que retirar la demo es borrar dos variables
+// de entorno y no editar tres archivos.
+async function precargarDemo(){
+  try {
+    const res = await fetch(API + '/publico/demo', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const { email, password } = await res.json();
+    const inEmail = document.getElementById('login-email');
+    const inPass = document.getElementById('login-password');
+    if (inEmail && !inEmail.value) inEmail.value = email;
+    if (inPass && !inPass.value) inPass.value = password;
+  } catch { /* sin demo configurada: el formulario queda vacio */ }
+}
+
 // Verifica sesion existente al cargar
 (async () => {
   try {
@@ -116,6 +132,7 @@ window.addEventListener('online', () => document.getElementById('offline-banner'
     showApp();
   } catch {
     showLogin();
+    precargarDemo();
   }
 })();
 

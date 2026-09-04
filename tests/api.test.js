@@ -1,29 +1,36 @@
-const path = require('path');
+require('dotenv').config({ quiet: true });
+
+// Los tests corren sobre un ESQUEMA APARTE de la misma base. Se crea al
+// empezar y se destruye al terminar, asi que nunca tocan los datos reales
+// de public. Hay que fijarlo antes de requerir src/db, que lo lee al cargar.
+process.env.DB_SCHEMA = process.env.TEST_DB_SCHEMA || 'test_fiados';
+
 const fs = require('fs');
-
-// Usar una base de datos de pruebas separada, aislada de la de desarrollo.
-const TEST_DB = path.join(__dirname, 'test.db');
-process.env.DB_PATH = TEST_DB;
-
-// Borra la base y sus archivos WAL. Windows no permite borrar un archivo
-// abierto, asi que esto corre antes de que db.js abra la conexion, y el
-// cierre de afterAll pasa antes del borrado final.
-function limpiarDB() {
-  for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) {
-    if (fs.existsSync(f)) fs.unlinkSync(f);
-  }
-}
-
-limpiarDB();
-
+const path = require('path');
 const request = require('supertest');
-const app = require('../src/app');
-const db = require('../src/db');
+const bcrypt = require('bcryptjs');
 
-afterAll(() => {
-  db.close();
-  limpiarDB();
-});
+const db = require('../src/db');
+const app = require('../src/app');
+
+const SCHEMA = process.env.DB_SCHEMA;
+const SCHEMA_SQL = path.join(__dirname, '..', 'db', 'schema.sql');
+
+beforeAll(async () => {
+  await db.query(`drop schema if exists ${SCHEMA} cascade`);
+  await db.query(`create schema ${SCHEMA}`);
+  await db.query(fs.readFileSync(SCHEMA_SQL, 'utf8'));
+
+  await db.query(
+    'insert into usuarios (email, password_hash, rol) values ($1, $2, $3)',
+    ['demo@ferrefacil.com', bcrypt.hashSync('Demo2026!', 10), 'demo']
+  );
+}, 60000);
+
+afterAll(async () => {
+  await db.query(`drop schema if exists ${SCHEMA} cascade`);
+  await db.pool.end();
+}, 60000);
 
 describe('GET /api/health', () => {
   test('responde ok en JSON sin necesitar sesion', async () => {
@@ -166,5 +173,48 @@ describe('animaciones de la landing', () => {
   test('respeta prefers-reduced-motion', async () => {
     const res = await request(app).get('/');
     expect(res.text).toContain('prefers-reduced-motion');
+  });
+});
+
+describe('vitrina publica de la landing', () => {
+  const { abreviar } = require('../src/routes/publico');
+
+  test('abreviar oculta el apellido completo', () => {
+    expect(abreviar('Carlos Martinez')).toBe('Carlos M.');
+    expect(abreviar('Constructora Pineda')).toBe('Constructora P.');
+    expect(abreviar('Wendy')).toBe('Wendy');
+  });
+
+  test('no requiere sesion', async () => {
+    const res = await request(app).get('/api/publico/vitrina');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  test('devuelve datos reales con mora calculada y sin apellidos', async () => {
+    const agent = request.agent(app);
+    await agent.post('/api/auth/login').send({ email: 'demo@ferrefacil.com', password: 'Demo2026!' });
+    const cliente = await agent.post('/api/clientes').send({ nombre: 'Vitrina Apellido' });
+    await agent.post('/api/fiados').send({
+      cliente_id: cliente.body.id,
+      descripcion: 'Cemento de prueba',
+      monto: 900,
+      fecha_vencimiento: '2020-01-01' // vencido, debe generar mora
+    });
+
+    const res = await request(app).get('/api/publico/vitrina');
+    const fila = res.body.find(f => f.descripcion === 'Cemento de prueba');
+
+    expect(fila).toBeDefined();
+    expect(fila.cliente).toBe('Vitrina A.');
+    expect(fila.saldo).toBe(900);
+    expect(fila.dias_mora).toBeGreaterThan(0);
+    // El apellido completo no debe viajar nunca a una pagina publica.
+    expect(JSON.stringify(res.body)).not.toContain('Apellido');
+  });
+
+  test('devuelve como maximo 3 fiados', async () => {
+    const res = await request(app).get('/api/publico/vitrina');
+    expect(res.body.length).toBeLessThanOrEqual(3);
   });
 });

@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const clientesRoutes = require('./routes/clientes');
 const fiadosRoutes = require('./routes/fiados');
 const healthRoutes = require('./routes/health');
+const { router: publicoRoutes } = require('./routes/publico');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/fiados', fiadosRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/publico', publicoRoutes);
 
 // La raiz sirve la landing (public/index.html). La aplicacion en si vive en
 // /app; se declara explicitamente para que la URL limpia funcione igual en
@@ -52,6 +54,17 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // 404 manejado explicitamente (entregable 3).
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
+});
+
+// Manejador de errores. Con la base en red, cualquier consulta puede fallar
+// (caida de red, pooler saturado); sin esto, un rechazo de promesa dejaria la
+// peticion colgada hasta el timeout en vez de responder.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Error no controlado:', err.message);
+  // Nunca se filtra el detalle interno al cliente: podria incluir fragmentos
+  // de la consulta o de la cadena de conexion.
+  res.status(500).json({ error: 'Error interno del servidor' });
 });
 
 module.exports = app;

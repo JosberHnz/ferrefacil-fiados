@@ -252,7 +252,10 @@ footer .fl a:first-child{margin-left:0}
       <p class="hero-note">Se instala en el celular · Funciona sin internet · Usuario demo incluido</p>
     </div>
 
-    <div class="mock" aria-hidden="true">
+    <!-- Las filas de abajo son un respaldo estatico. landing.js las sustituye
+         por datos reales de /api/publico/vitrina; si el fetch falla, se
+         quedan estas y la landing nunca se ve vacia. -->
+    <div class="mock" id="vitrina" aria-hidden="true">
       <div class="mock-bar">Fiados pendientes <span>Hoy</span></div>
       <div class="mock-row">
         <div class="mock-top">
@@ -383,9 +386,11 @@ footer .fl a:first-child{margin-left:0}
     <div>
       <h2>Probala ahora mismo</h2>
       <p>Hay un usuario de demostración cargado. No hace falta registrarse.</p>
-      <div class="creds">
-        usuario: <b>demo@ferrefacil.com</b><br>
-        contraseña: <b>Demo2026!</b>
+      <!-- Se rellena desde /api/publico/demo. El texto de respaldo se ve si
+           el JS no carga o si no hay cuenta demo configurada. -->
+      <div class="creds" id="demo-creds">
+        usuario: <b id="demo-email">—</b><br>
+        contraseña: <b id="demo-password">—</b>
       </div>
     </div>
     <a class="btn" href="/app">Iniciar sesión</a>

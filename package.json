@@ -6,8 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "jest --coverage --coverageReporters=json-summary --coverageReporters=text --coverageReporters=lcov",
-    "seed": "node src/seed.js"
+    "test": "jest --coverage --coverageReporters=json-summary --coverageReporters=text --coverageReporters=lcov --runInBand",
+    "db:migrate": "node src/migrate.js",
+    "db:reset": "node src/reset.js",
+    "seed": "node src/seed.js",
+    "export-schema": "node src/export-schema.js"
   },
   "license": "MIT",
   "engines": {
@@ -16,8 +19,10 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
+    "dotenv": "^17.4.2",
     "express": "^4.19.2",
-    "helmet": "^7.1.0"
+    "helmet": "^7.1.0",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
