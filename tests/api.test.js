@@ -5,21 +5,23 @@ require('dotenv').config({ quiet: true });
 // de public. Hay que fijarlo antes de requerir src/db, que lo lee al cargar.
 process.env.DB_SCHEMA = process.env.TEST_DB_SCHEMA || 'test_fiados';
 
-const fs = require('fs');
-const path = require('path');
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 
 const db = require('../src/db');
 const app = require('../src/app');
+const migrate = require('../src/migrate');
 
 const SCHEMA = process.env.DB_SCHEMA;
-const SCHEMA_SQL = path.join(__dirname, '..', 'db', 'schema.sql');
 
 beforeAll(async () => {
   await db.query(`drop schema if exists ${SCHEMA} cascade`);
   await db.query(`create schema ${SCHEMA}`);
-  await db.query(fs.readFileSync(SCHEMA_SQL, 'utf8'));
+
+  // Se aplican las MISMAS migraciones que en produccion, saltando las de
+  // datos. Asi los tests validan el esquema real: si una migracion tuviera
+  // un error, salta aqui y no en Supabase.
+  await migrate.aplicar({ soloEsquema: true });
 
   await db.query(
     'insert into usuarios (email, password_hash, rol) values ($1, $2, $3)',

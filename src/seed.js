@@ -1,4 +1,7 @@
-// Carga los datos de demostracion.
+// Carga los datos de demostracion desde Node.
+//
+// La fuente canonica es migrations/004_datos_demo.sql: este script existe
+// por comodidad (npm run seed) y debe mantenerse alineado con aquella.
 // Uso: npm run seed
 //
 // Idempotente: si ya hay clientes, no hace nada. Para recargar de cero:

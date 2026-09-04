@@ -8,12 +8,13 @@ La ferretería vendía al fiado usando un cuaderno físico. No había forma ráp
 
 ## Stack
 
-Node.js + Express + SQLite (`node:sqlite`, integrado en Node 22.5+), sesiones por cookie httpOnly, Helmet para headers de seguridad, PWA con Service Worker, tests con Jest + Supertest, CI con GitHub Actions + SonarCloud, desplegado en Vercel.
+Node.js + Express + PostgreSQL (Supabase, vía `pg`), sesiones por cookie httpOnly, login con Google (Supabase Auth, PKCE resuelto en el servidor), Helmet para headers de seguridad, PWA con Service Worker, tests con Jest + Supertest, CI con GitHub Actions + SonarCloud, desplegado en Vercel.
 
 ## Correr en local
 
 ```bash
 npm install
+npm run db:migrate # crea las tablas en Supabase (ver migrations/README.md)
 npm run seed      # carga clientes y fiados de ejemplo (opcional)
 npm start         # http://localhost:3000
 ```
@@ -34,12 +35,16 @@ Genera cobertura en `coverage/` (usada por SonarCloud vía `coverage/lcov.info`)
 src/
   app.js           API Express + seguridad + estaticos
   server.js        arranca el servidor
-  db.js            esquema SQLite + seed de usuario demo
+  db.js            pool de PostgreSQL y helpers de consulta
   auth.js          login/logout, middleware de sesion y rol admin
   mora.js          calculo de mora y saldo (logica pura, testeada)
   routes/          auth, clientes, fiados, health
+  oauth-google.js  flujo PKCE de inicio de sesion con Google
+  migrate.js       aplica migrations/ en orden
   seed.js          datos de ejemplo
+  reset.js         vacia las tablas (bloqueado en produccion)
   export-schema.js genera docs/db-export.json desde la DB real
+migrations/        SQL numerado y ejecutable a mano en Supabase
 public/
   index.html         landing publica del producto (ruta /)
   app.html/app.js    SPA que consume la API (ruta /app)
