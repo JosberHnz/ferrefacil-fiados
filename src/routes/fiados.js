@@ -1,6 +1,8 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../auth');
+const { idempotente } = require('../idempotencia');
+const cache = require('../cache');
 const { calcularMora, calcularSaldo } = require('../mora');
 
 const router = express.Router();
@@ -26,7 +28,7 @@ function enriquecer(fiado) {
 }
 
 // GET /api/fiados?cliente_id=1
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', cache.cachePrivada(), asyncHandler(async (req, res) => {
   const { cliente_id } = req.query;
   const rows = cliente_id
     ? await db.all(`${SELECT_FIADOS} where f.cliente_id = $1 order by f.fecha_vencimiento`, [cliente_id])
@@ -35,7 +37,7 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json(rows.map(enriquecer));
 }));
 
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', cache.sinCache, idempotente, asyncHandler(async (req, res) => {
   const { cliente_id, descripcion, monto, fecha_vencimiento, producto_id } = req.body || {};
   if (!cliente_id || !descripcion || !monto || !fecha_vencimiento) {
     return res.status(400).json({ error: 'cliente_id, descripcion, monto y fecha_vencimiento son requeridos' });
@@ -52,11 +54,12 @@ router.post('/', asyncHandler(async (req, res) => {
     [cliente_id, producto_id || null, descripcion, monto, fecha_vencimiento, req.usuario.id]
   );
 
+  cache.invalidar('vitrina');
   res.status(201).json(enriquecer({ ...creado, total_pagado: 0 }));
 }));
 
 // Registrar un pago (abono o pago total) y recalcular estado.
-router.post('/:id/pagos', asyncHandler(async (req, res) => {
+router.post('/:id/pagos', cache.sinCache, idempotente, asyncHandler(async (req, res) => {
   const { monto } = req.body || {};
   if (!monto || Number(monto) <= 0) return res.status(400).json({ error: 'monto de pago invalido' });
 
@@ -93,6 +96,7 @@ router.post('/:id/pagos', asyncHandler(async (req, res) => {
     return { ...fila, total_pagado: Number(total) };
   });
 
+  cache.invalidar('vitrina');
   res.json(enriquecer(actualizado));
 }));
 

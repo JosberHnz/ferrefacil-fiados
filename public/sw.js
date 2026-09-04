@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fiados-v9';
+const CACHE_NAME = 'fiados-v10';
 // '/' es la landing; '/app.html' es el shell de la aplicacion. Se precachea
 // el .html y no la URL limpia '/app': si una entrada de addAll fallara, la
 // instalacion entera del service worker se abortaria.

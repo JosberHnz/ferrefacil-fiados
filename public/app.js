@@ -1,11 +1,35 @@
 const API = '/api';
 let clientesCache = [];
 
+// Clave unica por intento. El servidor la usa para reconocer reintentos y
+// no repetir la operacion (ver src/idempotencia.js).
+function nuevaClave(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now() + '-' + Math.random().toString(16).slice(2);
+}
+
+// Deshabilita un boton mientras su operacion esta en vuelo. Es la primera
+// barrera contra el doble clic; la garantia de verdad es la del servidor,
+// porque esta no cubre una recarga ni una segunda pestana.
+async function conBoton(id, fn){
+  const btn = document.getElementById(id);
+  if (btn.disabled) return;
+  const texto = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  try { await fn(); }
+  catch (e) { alert(e.message || 'No se pudo completar la operacion'); }
+  finally { btn.disabled = false; btn.textContent = texto; }
+}
+
 async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (opts.clave) headers['Idempotency-Key'] = opts.clave;
+
   const res = await fetch(API + path, {
-    headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    ...opts
+    ...opts,
+    headers: { ...headers, ...(opts.headers || {}) }
   });
   if (res.status === 401) { showLogin(); throw new Error('No autenticado'); }
   if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Error');
@@ -42,33 +66,63 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   showLogin();
 });
 
-document.getElementById('btn-crear-cliente').addEventListener('click', async () => {
-  const nombre = document.getElementById('c-nombre').value.trim();
-  const telefono = document.getElementById('c-telefono').value.trim();
-  if (!nombre) return alert('El nombre es requerido');
-  await api('/clientes', { method: 'POST', body: JSON.stringify({ nombre, telefono }) });
-  document.getElementById('c-nombre').value = '';
-  document.getElementById('c-telefono').value = '';
-  cargarClientes();
-});
+document.getElementById('btn-crear-cliente').addEventListener('click', () =>
+  conBoton('btn-crear-cliente', async () => {
+    const nombre = document.getElementById('c-nombre').value.trim();
+    const telefono = document.getElementById('c-telefono').value.trim();
+    if (!nombre) return alert('El nombre es requerido');
+    await api('/clientes', {
+      method: 'POST', clave: nuevaClave(),
+      body: JSON.stringify({ nombre, telefono })
+    });
+    document.getElementById('c-nombre').value = '';
+    document.getElementById('c-telefono').value = '';
+    await cargarClientes();
+  }));
 
-document.getElementById('btn-crear-fiado').addEventListener('click', async () => {
-  const cliente_id = document.getElementById('f-cliente').value;
-  const descripcion = document.getElementById('f-desc').value.trim();
-  const monto = document.getElementById('f-monto').value;
-  const fecha_vencimiento = document.getElementById('f-vence').value;
-  if (!cliente_id || !descripcion || !monto || !fecha_vencimiento) return alert('Completá todos los campos');
-  await api('/fiados', { method: 'POST', body: JSON.stringify({ cliente_id, descripcion, monto, fecha_vencimiento }) });
-  document.getElementById('f-desc').value = '';
-  document.getElementById('f-monto').value = '';
-  cargarFiados();
-});
+document.getElementById('btn-crear-fiado').addEventListener('click', () =>
+  conBoton('btn-crear-fiado', async () => {
+    const cliente_id = document.getElementById('f-cliente').value;
+    const descripcion = document.getElementById('f-desc').value.trim();
+    const monto = document.getElementById('f-monto').value;
+    const fecha_vencimiento = document.getElementById('f-vence').value;
+    if (!cliente_id || !descripcion || !monto || !fecha_vencimiento) return alert('Completá todos los campos');
+    await api('/fiados', {
+      method: 'POST', clave: nuevaClave(),
+      body: JSON.stringify({ cliente_id, descripcion, monto, fecha_vencimiento })
+    });
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-monto').value = '';
+    await cargarFiados();
+  }));
+
+// El abono es el caso mas delicado: repetirlo descuadra la deuda real del
+// cliente. Se bloquea por fiado, no globalmente, para poder abonar a dos
+// fiados distintos sin esperar.
+const abonosEnCurso = new Set();
 
 async function pagar(fiadoId){
+  if (abonosEnCurso.has(fiadoId)) return;
+
   const monto = prompt('¿Cuánto se abona?');
   if (!monto) return;
-  await api(`/fiados/${fiadoId}/pagos`, { method: 'POST', body: JSON.stringify({ monto: Number(monto) }) });
-  cargarFiados();
+
+  abonosEnCurso.add(fiadoId);
+  const boton = document.querySelector(`[data-pagar="${fiadoId}"]`);
+  if (boton) boton.disabled = true;
+
+  try {
+    await api(`/fiados/${fiadoId}/pagos`, {
+      method: 'POST', clave: nuevaClave(),
+      body: JSON.stringify({ monto: Number(monto) })
+    });
+    await cargarFiados();
+  } catch (e) {
+    alert(e.message || 'No se pudo registrar el abono');
+    if (boton) boton.disabled = false;
+  } finally {
+    abonosEnCurso.delete(fiadoId);
+  }
 }
 
 async function cargarClientes(){

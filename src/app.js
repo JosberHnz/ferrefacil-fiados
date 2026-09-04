@@ -54,7 +54,28 @@ app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'app.html'));
 });
 
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Estaticos con cache negociada.
+//
+// maxAge corto y no inmutable a proposito: los archivos no llevan hash en
+// el nombre, asi que un cache largo dejaria a los usuarios con una version
+// vieja tras cada despliegue. Con etag activo, la peticion de revalidacion
+// se responde con un 304 sin cuerpo cuando nada cambio, que es casi todo
+// el ahorro sin el riesgo.
+//
+// El service worker (public/sw.js) es quien da el cache agresivo y el uso
+// sin conexion, y se invalida subiendo su CACHE_NAME en cada cambio.
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  maxAge: '5m',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, ruta) => {
+    // Estos tres definen el comportamiento de la app instalada: servirlos
+    // cacheados retrasaria dias la llegada de una version nueva.
+    if (/(?:sw\.js|manifest\.json|index\.html|app\.html)$/.test(ruta)) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
+  }
+}));
 
 // 404 manejado explicitamente (entregable 3).
 app.use((req, res) => {
