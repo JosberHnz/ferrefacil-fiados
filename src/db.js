@@ -20,6 +20,12 @@ types.setTypeParser(types.builtins.NUMERIC, parseFloat);
 // asi que se deja la cadena cruda tal como la envia PostgreSQL.
 types.setTypeParser(types.builtins.DATE, v => v);
 
+// Los id son bigint y pg los entrega como string, otra vez por precision.
+// Con SQLite eran numeros, asi que sin esto la API devolveria {"id":"7"} y
+// cualquier comparacion estricta con un numero en el frontend fallaria.
+// Un id de esta aplicacion no se acerca ni de lejos a 2^53.
+types.setTypeParser(types.builtins.INT8, v => parseInt(v, 10));
+
 if (!process.env.DATABASE_URL) {
   throw new Error(
     'Falta DATABASE_URL. En local se define en .env; en Vercel, en las ' +

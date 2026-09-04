@@ -218,3 +218,30 @@ describe('vitrina publica de la landing', () => {
     expect(res.body.length).toBeLessThanOrEqual(3);
   });
 });
+
+describe('tipos que devuelve la API', () => {
+  test('los id son numeros, no cadenas', async () => {
+    const agent = request.agent(app);
+    await agent.post('/api/auth/login').send({ email: 'demo@ferrefacil.com', password: 'Demo2026!' });
+
+    const cliente = await agent.post('/api/clientes').send({ nombre: 'Tipos Numericos' });
+    // pg entrega bigint como string; con SQLite eran numeros y el frontend
+    // compara ids con ===, asi que la conversion tiene que mantenerse.
+    expect(typeof cliente.body.id).toBe('number');
+
+    const fiado = await agent.post('/api/fiados').send({
+      cliente_id: cliente.body.id,
+      descripcion: 'Tipos',
+      monto: 100,
+      fecha_vencimiento: '2030-01-01'
+    });
+    expect(typeof fiado.body.id).toBe('number');
+    expect(typeof fiado.body.cliente_id).toBe('number');
+    // numeric tambien: si llegara como "100.00" el frontend concatenaria.
+    expect(typeof fiado.body.monto).toBe('number');
+    expect(typeof fiado.body.saldo).toBe('number');
+    // date se queda como cadena 'YYYY-MM-DD', que es lo que espera mora.js.
+    expect(typeof fiado.body.fecha_vencimiento).toBe('string');
+    expect(fiado.body.fecha_vencimiento).toBe('2030-01-01');
+  });
+});
