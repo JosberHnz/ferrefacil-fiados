@@ -69,10 +69,18 @@ async function exportar() {
       [db.SCHEMA, tablename]
     );
 
+    const politicas = await db.all(
+      `select policyname from pg_policies
+        where schemaname = $1 and tablename = $2
+        order by policyname`,
+      [db.SCHEMA, tablename]
+    );
+
     salida.push({
       nombre: tablename,
       filas,
       rls: !!(rls && rls.activo),
+      politicas_rls: politicas.map(p => p.policyname),
       columnas: columnas.map(c => ({
         nombre: c.column_name,
         tipo: c.numeric_precision && c.data_type === 'numeric'
