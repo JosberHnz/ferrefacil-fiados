@@ -1,13 +1,16 @@
 {
-  "generado_at": "2026-09-04T00:36:47.656Z",
+  "generado_at": "2026-09-07T16:33:52.563Z",
   "motor": "postgresql",
   "proveedor": "supabase",
   "esquema": "public",
   "tablas": [
     {
       "nombre": "clientes",
-      "filas": 6,
+      "filas": 7,
       "rls": true,
+      "politicas_rls": [
+        "clientes_sin_acceso_publico"
+      ],
       "columnas": [
         {
           "nombre": "id",
@@ -53,8 +56,11 @@
     },
     {
       "nombre": "fiados",
-      "filas": 12,
+      "filas": 13,
       "rls": true,
+      "politicas_rls": [
+        "fiados_sin_acceso_publico"
+      ],
       "columnas": [
         {
           "nombre": "id",
@@ -123,16 +129,81 @@
       ],
       "relaciones": [
         {
-          "columna": "cliente_id",
-          "referencia": "clientes.id"
+          "columna": "producto_id",
+          "referencia": "productos.id"
         },
         {
           "columna": "creado_por",
           "referencia": "usuarios.id"
         },
         {
-          "columna": "producto_id",
-          "referencia": "productos.id"
+          "columna": "cliente_id",
+          "referencia": "clientes.id"
+        }
+      ]
+    },
+    {
+      "nombre": "idempotencia",
+      "filas": 0,
+      "rls": true,
+      "politicas_rls": [],
+      "columnas": [
+        {
+          "nombre": "clave",
+          "tipo": "text",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "usuario_id",
+          "tipo": "bigint",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "metodo",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "ruta",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "huella",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "estado_http",
+          "tipo": "integer",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "respuesta",
+          "tipo": "jsonb",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "creado_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [
+        "idx_idempotencia_creado"
+      ],
+      "relaciones": [
+        {
+          "columna": "usuario_id",
+          "referencia": "usuarios.id"
         }
       ]
     },
@@ -140,6 +211,7 @@
       "nombre": "pagos",
       "filas": 6,
       "rls": true,
+      "politicas_rls": [],
       "columnas": [
         {
           "nombre": "id",
@@ -186,6 +258,7 @@
       "nombre": "productos",
       "filas": 0,
       "rls": true,
+      "politicas_rls": [],
       "columnas": [
         {
           "nombre": "id",
@@ -216,9 +289,38 @@
       "relaciones": []
     },
     {
-      "nombre": "sesiones",
-      "filas": 0,
+      "nombre": "schema_migrations",
+      "filas": 6,
       "rls": true,
+      "politicas_rls": [],
+      "columnas": [
+        {
+          "nombre": "version",
+          "tipo": "text",
+          "pk": true,
+          "nulo": false
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "text",
+          "pk": false,
+          "nulo": false
+        },
+        {
+          "nombre": "aplicada_en",
+          "tipo": "timestamp with time zone",
+          "pk": false,
+          "nulo": false
+        }
+      ],
+      "indices": [],
+      "relaciones": []
+    },
+    {
+      "nombre": "sesiones",
+      "filas": 3,
+      "rls": true,
+      "politicas_rls": [],
       "columnas": [
         {
           "nombre": "id",
@@ -263,8 +365,9 @@
     },
     {
       "nombre": "usuarios",
-      "filas": 2,
+      "filas": 3,
       "rls": true,
+      "politicas_rls": [],
       "columnas": [
         {
           "nombre": "id",
@@ -282,7 +385,7 @@
           "nombre": "password_hash",
           "tipo": "text",
           "pk": false,
-          "nulo": false
+          "nulo": true
         },
         {
           "nombre": "rol",
@@ -295,6 +398,24 @@
           "tipo": "timestamp with time zone",
           "pk": false,
           "nulo": false
+        },
+        {
+          "nombre": "google_id",
+          "tipo": "text",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "text",
+          "pk": false,
+          "nulo": true
+        },
+        {
+          "nombre": "avatar_url",
+          "tipo": "text",
+          "pk": false,
+          "nulo": true
         }
       ],
       "indices": [],
