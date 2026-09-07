@@ -15,7 +15,7 @@
 //      cual, sin tocar la base.
 //   4. Si existia sin respuesta, la original sigue en curso: se responde
 //      409 para que el cliente no duplique nada.
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const db = require('./db');
 
 const HORAS_VIGENCIA = 24;
