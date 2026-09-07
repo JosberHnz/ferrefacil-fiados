@@ -1,3 +1,5 @@
+> **Estado: Superado por [ADR-003](./ADR-003-postgres-vercel.md).** Se conserva como registro histórico de la decisión original — ver ADR-003 para la decisión vigente y por qué cambió.
+
 # ADR-001: Usar SQLite embebido en vez de Postgres gestionado
 
 ## Contexto
