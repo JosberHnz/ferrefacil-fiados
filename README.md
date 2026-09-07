@@ -10,6 +10,7 @@ La ferretería vendía al fiado usando un cuaderno físico. No había forma ráp
 
 Configuralas en el dashboard de Vercel (Settings → Environment Variables), no en un archivo commiteado:
 
+- `NODE_ENV` — poné `production`
 - `DATABASE_URL` — cadena de conexión de Supabase (Settings → Database → Connection string)
 - `SUPABASE_URL` / `SUPABASE_ANON_KEY` — del panel de Supabase (Settings → API)
 - `APP_URL` — URL pública del sitio, ej. `https://josberhnz.lat`
