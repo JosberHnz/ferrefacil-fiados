@@ -46,6 +46,14 @@ const FIADOS = [
   { cliente: 'Óscar Banegas',         descripcion: 'Cable THHN 100 metros',               monto: 1150, dias: 5,   abonos: [] }
 ];
 
+/** Deriva el estado del fiado a partir de lo pagado, en pasos claros en vez
+ * de un ternario anidado. */
+function estadoDe(pagado, monto) {
+  if (pagado >= monto) return 'pagado';
+  if (pagado > 0) return 'parcial';
+  return 'pendiente';
+}
+
 async function seed() {
   const { rows: [{ n }] } = await db.query('select count(*)::int as n from clientes');
   if (n > 0) {
@@ -83,7 +91,7 @@ async function seed() {
     const creadoPor = usuarios['admin@ferrefacil.com'];
     for (const f of FIADOS) {
       const pagado = f.abonos.reduce((a, b) => a + b, 0);
-      const estado = pagado >= f.monto ? 'pagado' : pagado > 0 ? 'parcial' : 'pendiente';
+      const estado = estadoDe(pagado, f.monto);
 
       const { rows: [fiado] } = await client.query(
         `insert into fiados

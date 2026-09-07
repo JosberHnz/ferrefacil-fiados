@@ -8,8 +8,8 @@
 // Los mismos archivos se pueden pegar a mano en el SQL Editor de Supabase;
 // ver migrations/README.md.
 require('dotenv').config({ quiet: true });
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const db = require('./db');
 
 const DIR = path.join(__dirname, '..', 'migrations');

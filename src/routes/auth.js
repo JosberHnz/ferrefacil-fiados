@@ -121,7 +121,11 @@ router.get('/callback', async (req, res, next) => {
     ponerCookieSesion(res, sesion.token);
     res.redirect('/app');
   } catch (e) {
-    console.error('Fallo el callback de Google:', e.message);
+    // El mensaje puede venir de una respuesta externa (Google/Supabase); se
+    // le quitan saltos de linea antes de loguear para evitar inyeccion de
+    // logs (alguien fabricando lineas falsas en la salida del servidor).
+    const seguro = String(e.message || 'error desconocido').replace(/[\r\n]/g, ' ');
+    console.error('Fallo el callback de Google:', seguro);
     alError('No se pudo completar el inicio de sesion con Google');
   }
 });
