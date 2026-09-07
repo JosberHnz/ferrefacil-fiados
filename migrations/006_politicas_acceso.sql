@@ -8,13 +8,19 @@
 --
 -- La app sigue sin verse afectada: se conecta como dueña de las tablas,
 -- rol que Postgres exime de RLS por definición.
+--
+-- CREATE POLICY no soporta "IF NOT EXISTS", así que para que esta
+-- migración se pueda correr dos veces sin fallar (idempotencia, ver
+-- tests/migrations.test.js), primero se borra la política si ya existe.
 -- =============================================================
 
+drop policy if exists "clientes_sin_acceso_publico" on clientes;
 create policy "clientes_sin_acceso_publico"
   on clientes for all
   to anon, authenticated
   using (false);
 
+drop policy if exists "fiados_sin_acceso_publico" on fiados;
 create policy "fiados_sin_acceso_publico"
   on fiados for all
   to anon, authenticated
