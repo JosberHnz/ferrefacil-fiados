@@ -69,8 +69,8 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
     <p style="color:var(--muted);font-size:14px">Iniciá sesión para continuar</p>
     <div id="login-error" class="error hidden"></div>
     <form id="login-form">
-      <div class="row"><input id="login-email" type="email" placeholder="correo" autocomplete="username" required></div>
-      <div class="row"><input id="login-password" type="password" placeholder="contraseña" autocomplete="current-password" required></div>
+      <div class="row"><input id="login-email" type="email" placeholder="correo" aria-label="Correo electrónico" autocomplete="username" required></div>
+      <div class="row"><input id="login-password" type="password" placeholder="contraseña" aria-label="Contraseña" autocomplete="current-password" required></div>
       <button type="submit">Entrar</button>
     </form>
 
@@ -101,8 +101,8 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
     <div class="card">
       <h3>Nuevo cliente</h3>
       <div class="row">
-        <input id="c-nombre" placeholder="Nombre del cliente">
-        <input id="c-telefono" placeholder="Teléfono">
+        <input id="c-nombre" placeholder="Nombre del cliente" aria-label="Nombre del cliente">
+        <input id="c-telefono" placeholder="Teléfono" aria-label="Teléfono del cliente">
       </div>
       <button id="btn-crear-cliente">Agregar cliente</button>
     </div>
@@ -110,12 +110,12 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
     <div class="card">
       <h3>Registrar fiado</h3>
       <div class="row">
-        <select id="f-cliente"></select>
-        <input id="f-desc" placeholder="Descripción (ej. cemento 2 sacos)">
+        <select id="f-cliente" aria-label="Cliente"></select>
+        <input id="f-desc" placeholder="Descripción (ej. cemento 2 sacos)" aria-label="Descripción del fiado">
       </div>
       <div class="row">
-        <input id="f-monto" type="number" placeholder="Monto (L.)">
-        <input id="f-vence" type="date">
+        <input id="f-monto" type="number" placeholder="Monto (L.)" aria-label="Monto del fiado en lempiras">
+        <input id="f-vence" type="date" aria-label="Fecha de vencimiento del fiado">
       </div>
       <button id="btn-crear-fiado">Registrar fiado</button>
     </div>
