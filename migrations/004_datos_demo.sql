@@ -107,4 +107,4 @@ select estado,
                  and estado <> 'pagado' then 1 else 0 end) as en_mora
   from fiados
  group by estado
- order by estado;
+ order by estado asc;
