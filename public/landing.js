@@ -18,14 +18,14 @@
   // Se marca cuanto antes (el script se carga en el <head>, sin defer) para
   // que el estado inicial se aplique antes del primer pintado y no se vea
   // un parpadeo del contenido apareciendo y ocultandose.
-  document.documentElement.setAttribute('data-anim', 'on');
+  document.documentElement.dataset.anim = 'on';
 
   document.addEventListener('DOMContentLoaded', function () {
     var observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
         var el = entry.target;
-        var delay = Number(el.getAttribute('data-delay')) || 0;
+        var delay = Number(el.dataset.delay) || 0;
         setTimeout(function () { el.classList.add('visible'); }, delay);
         observer.unobserve(el); // se anima una sola vez, no en cada scroll
       });

@@ -55,11 +55,12 @@ a{color:var(--accent)}
 .btn{
   display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
   padding:13px 26px;border-radius:8px;font-weight:700;font-size:15px;
-  border:2px solid var(--accent);transition:background .15s,border-color .15s;
+  border:2px solid var(--accent);
+  transition:background .15s,border-color .15s,transform .15s,box-shadow .15s;
 }
-.btn:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+.btn:hover{background:var(--accent-dark);border-color:var(--accent-dark);transform:translateY(-2px);box-shadow:0 8px 18px rgba(232,89,12,.28)}
 .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
-.btn.ghost:hover{background:rgba(255,255,255,.10);border-color:#fff}
+.btn.ghost:hover{background:rgba(255,255,255,.10);border-color:#fff;box-shadow:none}
 .btn.small{padding:9px 18px;font-size:14px}
 
 /* ---------- hero ---------- */
@@ -73,23 +74,24 @@ a{color:var(--accent)}
   font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   padding:6px 13px;border-radius:20px;margin-bottom:18px;
 }
-.hero h1{font-size:42px;line-height:1.18;margin:0 0 18px;letter-spacing:-.5px}
+.hero h1{font-size:42px;line-height:1.18;margin:0 0 18px;letter-spacing:-.5px;animation:surgir .65s .16s both}
 .hero h1 em{color:var(--accent);font-style:normal}
 .hero p.lead{color:var(--on-dark);font-size:18px;margin:0 0 30px;max-width:520px}
-.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
-.hero-note{color:var(--on-dark-soft);font-size:13px;margin:0}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;animation:surgir .65s .38s both}
+.hero-note{color:var(--on-dark-soft);font-size:13px;margin:0;animation:surgir .65s .49s both}
 
 /* ---------- mockup de tarjeta ---------- */
 .mock{
   background:var(--paper);border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.34);
   overflow:hidden;color:var(--ink);
+  animation:surgirEscala .85s .34s both,flotar 7s 1.4s ease-in-out infinite;
 }
 .mock-bar{
   background:var(--bg);border-bottom:1px solid var(--line);
   padding:11px 16px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;
 }
 .mock-bar span{color:var(--muted);font-weight:600}
-.mock-row{padding:14px 16px;border-bottom:1px solid var(--line)}
+.mock-row{padding:14px 16px;border-bottom:1px solid var(--line);animation:surgir .55s both}
 .mock-row:last-child{border-bottom:none}
 .mock-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .mock-name{font-weight:700;font-size:15px}
@@ -107,7 +109,7 @@ a{color:var(--accent)}
   max-width:1060px;margin:0 auto;display:grid;
   grid-template-columns:repeat(4,1fr);gap:20px;text-align:center;
 }
-.strip b{display:block;font-size:26px;color:var(--accent);line-height:1.2}
+.strip b{display:block;font-size:26px;color:var(--accent);line-height:1.2;transition:transform .22s ease}
 .strip span{font-size:13px;color:var(--muted)}
 
 /* ---------- secciones ---------- */
@@ -128,7 +130,7 @@ h2{font-size:27px;margin:0 0 12px;letter-spacing:-.3px}
 
 .features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 .feature{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
-.feature .ico{font-size:24px;display:block;margin-bottom:12px}
+.feature .ico{font-size:24px;display:block;margin-bottom:12px;transition:transform .22s ease}
 .feature h3{margin:0 0 8px;font-size:16px}
 .feature p{margin:0;color:var(--muted);font-size:14.5px}
 
@@ -176,12 +178,7 @@ footer .fl a:first-child{margin-left:0}
 
 /* --- entrada del hero: en cuanto carga, escalonada --- */
 .hero .eyebrow{animation:surgir .65s .05s both}
-.hero h1{animation:surgir .65s .16s both}
 .hero .lead{animation:surgir .65s .27s both}
-.hero-cta{animation:surgir .65s .38s both}
-.hero-note{animation:surgir .65s .49s both}
-.mock{animation:surgirEscala .85s .34s both,flotar 7s 1.4s ease-in-out infinite}
-.mock-row{animation:surgir .55s both}
 .mock-row:nth-child(2){animation-delay:.62s}
 .mock-row:nth-child(3){animation-delay:.74s}
 .mock-row:nth-child(4){animation-delay:.86s}
@@ -203,12 +200,7 @@ footer .fl a:first-child{margin-left:0}
 /* --- microinteracciones --- */
 .feature,.step,.panel{transition:transform .22s ease,box-shadow .22s ease}
 .feature:hover,.step:hover,.panel:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(24,32,40,.14)}
-.feature .ico{transition:transform .22s ease}
 .feature:hover .ico{transform:scale(1.16) rotate(-6deg)}
-.btn{transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(232,89,12,.28)}
-.btn.ghost:hover{box-shadow:none}
-.strip b{transition:transform .22s ease}
 .strip-inner>div:hover b{transform:scale(1.1)}
 .nav .links a:not(.btn){position:relative}
 .nav .links a:not(.btn)::after{

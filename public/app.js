@@ -5,7 +5,9 @@ let clientesCache = [];
 // no repetir la operacion (ver src/idempotencia.js).
 function nuevaClave(){
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return Date.now() + '-' + Math.random().toString(16).slice(2);
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Date.now() + '-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Deshabilita un boton mientras su operacion esta en vuelo. Es la primera
@@ -151,7 +153,7 @@ async function cargarFiados(){
 
 // Delegacion de eventos: CSP no permite atributos onclick inline.
 document.getElementById('tabla-fiados').addEventListener('click', e => {
-  const id = e.target.getAttribute('data-pagar');
+  const id = e.target.dataset.pagar;
   if (id) pagar(Number(id));
 });
 
