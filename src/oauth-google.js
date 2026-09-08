@@ -10,10 +10,10 @@
 //    puede canjear aqui.
 //  - Asi el token de Supabase no toca el navegador: se cambia por la cookie
 //    de sesion httpOnly que la aplicacion ya usaba.
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 function base64url(buf) {
-  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  return buf.toString('base64').replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
 
 /** Secreto efimero que prueba que quien canjea el codigo es quien lo pidio. */

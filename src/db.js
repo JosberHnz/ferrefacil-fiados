@@ -13,7 +13,7 @@ const { Pool, types } = require('pg');
 // la API siempre devolvio numeros, asi que se convierten: sin esto,
 // res.body.saldo pasaria de 500 a "500.00" y el frontend concatenaria
 // cadenas en vez de sumar.
-types.setTypeParser(types.builtins.NUMERIC, parseFloat);
+types.setTypeParser(types.builtins.NUMERIC, Number.parseFloat);
 
 // Y date lo entrega como objeto Date a medianoche LOCAL, lo que desplaza el
 // dia segun la zona horaria del servidor. mora.js trabaja con 'YYYY-MM-DD',
@@ -24,7 +24,7 @@ types.setTypeParser(types.builtins.DATE, v => v);
 // Con SQLite eran numeros, asi que sin esto la API devolveria {"id":"7"} y
 // cualquier comparacion estricta con un numero en el frontend fallaria.
 // Un id de esta aplicacion no se acerca ni de lejos a 2^53.
-types.setTypeParser(types.builtins.INT8, v => parseInt(v, 10));
+types.setTypeParser(types.builtins.INT8, v => Number.parseInt(v, 10));
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
