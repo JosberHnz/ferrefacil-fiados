@@ -71,6 +71,8 @@ code{background:var(--bg);padding:2px 6px;border-radius:4px;font-size:14px}
     </svg>
 
     <p>La decisión de construir solo esta feature, en vez de reconstruir todo el sistema de inventario y facturación del proyecto anterior, fue intencional: un capstone individual necesita demostrar dominio completo de una pieza real de software (backend, base de datos, pruebas automatizadas, seguridad y despliegue), y eso se logra mejor con un alcance acotado y bien hecho que con un sistema grande a medio terminar.</p>
+
+    <p>Un detalle que separa esta app de un simple formulario es el manejo cuidadoso de operaciones repetidas: si el vendedor hace doble clic en "Abonar" por error, o si la conexión falla y el navegador reintenta la petición, el sistema detecta que es la misma operación (usando una clave de idempotencia) y no registra el pago dos veces. Esto importa porque en un negocio real, un bug que duplique un pago o un fiado no es solo un error técnico: es dinero real mal contado.</p>
   </div>
 </section>
 
@@ -151,6 +153,8 @@ code{background:var(--bg);padding:2px 6px;border-radius:4px;font-size:14px}
       <li><b>Hosting:</b> Vercel (funciones serverless, HTTPS automático) + Supabase (PostgreSQL gestionado)</li>
     </ul>
     <p>Cada pieza se eligió por simplicidad y por ser suficiente para el problema real, no por moda: no hay ningún framework de frontend porque la interfaz es pequeña y no lo necesita. La base de datos sí es gestionada, y por una razón concreta: el hosting serverless no conserva el sistema de archivos entre invocaciones, así que un SQLite embebido perdía los fiados en cada arranque en frío.</p>
+
+    <p>La elección de Supabase como proveedor de PostgreSQL, en vez de administrar un servidor de base de datos propio, responde al mismo criterio de simplicidad que guía el resto del proyecto: como estudiante trabajando solo, no tiene sentido invertir tiempo en tareas de administración de infraestructura (parches de seguridad, backups manuales, monitoreo del servidor) cuando un proveedor gestionado ya resuelve eso de forma confiable y gratuita para un proyecto de este tamaño.</p>
   </div>
 </section>
 
