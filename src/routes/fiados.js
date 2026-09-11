@@ -12,10 +12,13 @@ const asyncHandler = fn => (req, res, next) => fn(req, res, next).catch(next);
 
 // El total pagado se resuelve dentro de la propia consulta. Antes se hacia un
 // SELECT SUM por cada fiado del listado (N+1): 20 fiados eran 21 consultas.
+// Se incluye el nombre del cliente via JOIN para poder filtrar por el en
+// "buscar" sin una consulta aparte por cada fiado.
 const SELECT_FIADOS = `
-  select f.*,
+  select f.*, c.nombre as cliente_nombre,
          coalesce((select sum(p.monto) from pagos p where p.fiado_id = f.id), 0) as total_pagado
-    from fiados f`;
+    from fiados f
+    join clientes c on c.id = f.cliente_id`;
 
 /** Anade saldo y dias de mora. Logica pura: no toca la base. */
 function enriquecer(fiado) {
@@ -27,12 +30,30 @@ function enriquecer(fiado) {
   };
 }
 
-// GET /api/fiados?cliente_id=1
+// GET /api/fiados?cliente_id=1&estado=pendiente&buscar=cemento
+// Los 3 filtros son opcionales y se combinan con AND. "buscar" compara
+// contra el nombre del cliente Y la descripcion del fiado, para que una
+// sola caja de busqueda sirva para ambos casos de uso.
 router.get('/', cache.cachePrivada(), asyncHandler(async (req, res) => {
-  const { cliente_id } = req.query;
-  const rows = cliente_id
-    ? await db.all(`${SELECT_FIADOS} where f.cliente_id = $1 order by f.fecha_vencimiento`, [cliente_id])
-    : await db.all(`${SELECT_FIADOS} order by f.fecha_vencimiento`);
+  const { cliente_id, estado, buscar } = req.query;
+  const condiciones = [];
+  const params = [];
+
+  if (cliente_id) {
+    params.push(cliente_id);
+    condiciones.push(`f.cliente_id = $${params.length}`);
+  }
+  if (estado) {
+    params.push(estado);
+    condiciones.push(`f.estado = $${params.length}`);
+  }
+  if (buscar) {
+    params.push(`%${buscar}%`);
+    condiciones.push(`(c.nombre ilike $${params.length} or f.descripcion ilike $${params.length})`);
+  }
+
+  const where = condiciones.length ? `where ${condiciones.join(' and ')}` : '';
+  const rows = await db.all(`${SELECT_FIADOS} ${where} order by f.fecha_vencimiento`, params);
 
   res.json(rows.map(enriquecer));
 }));
@@ -44,7 +65,7 @@ router.post('/', cache.sinCache, idempotente, asyncHandler(async (req, res) => {
   }
   if (Number(monto) <= 0) return res.status(400).json({ error: 'monto debe ser mayor a 0' });
 
-  const cliente = await db.one('select id from clientes where id = $1', [cliente_id]);
+  const cliente = await db.one('select id, nombre from clientes where id = $1', [cliente_id]);
   if (!cliente) return res.status(404).json({ error: 'cliente_id no existe' });
 
   const creado = await db.one(
@@ -55,7 +76,7 @@ router.post('/', cache.sinCache, idempotente, asyncHandler(async (req, res) => {
   );
 
   cache.invalidar('vitrina');
-  res.status(201).json(enriquecer({ ...creado, total_pagado: 0 }));
+  res.status(201).json(enriquecer({ ...creado, cliente_nombre: cliente.nombre, total_pagado: 0 }));
 }));
 
 // Registrar un pago (abono o pago total) y recalcular estado.
@@ -86,6 +107,10 @@ router.post('/:id/pagos', cache.sinCache, idempotente, asyncHandler(async (req, 
       [req.params.id]
     );
 
+    const { rows: [{ nombre: clienteNombre }] } = await client.query(
+      'select nombre from clientes where id = $1', [fiado.cliente_id]
+    );
+
     const nuevoEstado = Number(total) >= Number(fiado.monto) ? 'pagado' : 'parcial';
 
     const { rows: [fila] } = await client.query(
@@ -93,7 +118,7 @@ router.post('/:id/pagos', cache.sinCache, idempotente, asyncHandler(async (req, 
       [nuevoEstado, req.params.id]
     );
 
-    return { ...fila, total_pagado: Number(total) };
+    return { ...fila, cliente_nombre: clienteNombre, total_pagado: Number(total) };
   });
 
   cache.invalidar('vitrina');

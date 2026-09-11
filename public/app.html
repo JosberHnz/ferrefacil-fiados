@@ -10,16 +10,12 @@
 <link rel="icon" href="/icons/icon-192.png">
 <style>
 :root{
-  /* Neutros frios */
   --bg:#F4F6F7; --paper:#FFFFFF;
   --ink:#182028; --ink-soft:#24303B;
   --muted:#5D6C7B; --line:#DDE3E8;
-  /* Texto sobre superficies oscuras */
   --on-dark:#C2CCD4; --on-dark-soft:#8B98A4;
-  /* Acento: azul pizarra */
   --accent:#1F5468; --accent-dark:#143C4C;
   --accent-soft:#E7EFF2; --accent-tint:#7FB3C4;
-  /* Estados, en tonos apagados */
   --ok:#2C6A51; --ok-soft:#E4EEE9;
   --warn:#7E621B; --warn-soft:#F2ECDC;
   --danger:#9E3A31; --danger-soft:#F4E3E1;
@@ -32,7 +28,7 @@ header{background:var(--ink);color:#fff;padding:16px 24px;display:flex;justify-c
 header h1{font-size:18px;margin:0}
 header .acciones{display:flex;gap:8px;align-items:center}
 header .rol-badge{background:rgba(255,255,255,.14);color:var(--on-dark);font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;text-transform:uppercase}
-main{max-width:900px;margin:0 auto;padding:24px}
+main{max-width:960px;margin:0 auto;padding:24px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
 input,select,button,textarea{font-size:15px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);width:100%;box-sizing:border-box;font-family:inherit}
 button{background:var(--accent);color:#fff;border:none;cursor:pointer;width:auto;font-weight:600}
@@ -70,11 +66,25 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
 .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .tabs button{background:#fff;color:var(--muted);border:1px solid var(--line);width:auto}
 .tabs button.activo{background:var(--accent);color:#fff;border-color:var(--accent)}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
 .stat-box{background:var(--accent-soft);border-radius:10px;padding:14px;text-align:center}
+.stat-box.alerta{background:var(--danger-soft)}
 .stat-box b{display:block;font-size:24px;color:var(--accent)}
+.stat-box.alerta b{color:var(--danger)}
 .stat-box span{font-size:12px;color:var(--muted)}
 .diag-box{margin-top:6px;font-size:13px;color:var(--muted)}
+.chart-bars{display:flex;align-items:flex-end;gap:16px;height:140px;padding:10px 6px}
+.chart-bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
+.chart-bar{width:100%;max-width:56px;border-radius:6px 6px 0 0;transition:height .3s ease}
+.chart-bar-label{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
+.chart-bar-value{font-size:13px;font-weight:700;margin-bottom:4px}
+.deudor-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.deudor-row:last-child{border-bottom:none}
+.actividad-item{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.actividad-item:last-child{border-bottom:none}
+.actividad-tipo{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600}
+.actividad-tipo.fiado{background:var(--warn-soft);color:var(--warn)}
+.actividad-tipo.pago{background:var(--ok-soft);color:var(--ok)}
 </style>
 </head>
 <body>
@@ -127,9 +137,20 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
         <button type="button" data-tab="feedback">Feedback</button>
       </div>
 
-      <div id="tab-dashboard" class="card">
-        <h3>Resumen del negocio</h3>
-        <div id="stats-grid" class="stats-grid"></div>
+      <div id="tab-dashboard">
+        <div class="card">
+          <h3>Resumen del negocio</h3>
+          <div id="stats-grid" class="stats-grid"></div>
+          <div id="chart-fiados" class="chart-bars"></div>
+        </div>
+        <div class="card">
+          <h3>Top 5 clientes con más deuda</h3>
+          <div id="top-deudores"></div>
+        </div>
+        <div class="card">
+          <h3>Actividad reciente</h3>
+          <div id="actividad-reciente"></div>
+        </div>
       </div>
 
       <div id="tab-tickets" class="card hidden">
@@ -173,6 +194,16 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
 
     <div class="card">
       <h3>Fiados</h3>
+      <div class="row">
+        <input id="filtro-buscar" placeholder="Buscar por cliente o descripción" aria-label="Buscar fiados">
+        <select id="filtro-estado" aria-label="Filtrar por estado">
+          <option value="">Todos los estados</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="parcial">Parcial</option>
+          <option value="pagado">Pagado</option>
+        </select>
+        <button type="button" class="secondary" id="btn-limpiar-filtros">Limpiar</button>
+      </div>
       <table>
         <thead><tr><th>Cliente</th><th>Descripción</th><th>Saldo</th><th>Mora</th><th>Estado</th><th></th></tr></thead>
         <tbody id="tabla-fiados"></tbody>
