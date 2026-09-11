@@ -177,10 +177,34 @@ describe('enrutado de paginas', () => {
   // La CSP solo permite imagenes de 'self' y data:, asi que las ilustraciones
   // tienen que vivir en public/ y no en un servicio externo.
   test('las ilustraciones de la app se sirven como SVG locales', async () => {
-    for (const img of ['dashboard-hero', 'login-ferreteria', 'vacio-todo-al-dia']) {
+    for (const img of ['dashboard-hero', 'login-ferreteria', 'vacio-todo-al-dia', 'consejos-obra']) {
       const res = await request(app).get(`/img/${img}.svg`);
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
+    }
+  });
+
+  // El carrusel descarta en silencio los consejos con una categoria que no
+  // conoce; este test evita que un error de tipeo en el JSON haga
+  // desaparecer un consejo sin que nadie lo note.
+  test('los consejos del rubro son un JSON valido con categorias conocidas', async () => {
+    const res = await request(app).get('/contenido/consejos.json');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/application\/json/);
+
+    const categorias = ['materiales', 'temporada', 'calculos', 'seguridad', 'negocio'];
+    const { consejos } = res.body;
+    expect(consejos.length).toBeGreaterThanOrEqual(5);
+
+    const ids = new Set();
+    for (const c of consejos) {
+      expect(categorias).toContain(c.categoria);
+      expect(c.titulo.trim()).not.toBe('');
+      expect(c.texto.trim()).not.toBe('');
+      expect(ids.has(c.id)).toBe(false);
+      ids.add(c.id);
+      if (c.dato) expect(c.dato.valor && c.dato.etiqueta).toBeTruthy();
+      if (c.meses) c.meses.forEach(m => expect(Number.isInteger(m) && m >= 1 && m <= 12).toBe(true));
     }
   });
 });
