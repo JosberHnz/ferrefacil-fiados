@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, logout, crearSesion, DURACION_SESION_HORAS } = require('../auth');
+const { login, logout, crearSesion, requireAuth, DURACION_SESION_HORAS } = require('../auth');
 const db = require('../db');
 const google = require('../oauth-google');
 
@@ -42,6 +42,14 @@ router.post('/logout', async (req, res, next) => {
   } catch (e) {
     next(e);
   }
+});
+
+// Le dice al frontend quien esta logueado ahora, sin depender de que el
+// login haya ocurrido en este mismo ciclo de carga de la pagina. Sin esto,
+// recargar la pantalla le hacia perder al panel de administracion el dato
+// del rol del usuario, aunque la sesion siguiera siendo valida.
+router.get('/me', requireAuth, (req, res) => {
+  res.json({ user: req.usuario });
 });
 
 // ---------------------------------------------------------------------------
