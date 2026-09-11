@@ -1,8 +1,8 @@
 const API = '/api';
 let clientesCache = [];
+let usuarioActual = null;
+const ROLES_ADMIN = ['admin', 'super_admin'];
 
-// Clave unica por intento. El servidor la usa para reconocer reintentos y
-// no repetir la operacion (ver src/idempotencia.js).
 function nuevaClave(){
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
   const bytes = new Uint8Array(8);
@@ -10,9 +10,6 @@ function nuevaClave(){
   return Date.now() + '-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Deshabilita un boton mientras su operacion esta en vuelo. Es la primera
-// barrera contra el doble clic; la garantia de verdad es la del servidor,
-// porque esta no cubre una recarga ni una segunda pestana.
 async function conBoton(id, fn){
   const btn = document.getElementById(id);
   if (btn.disabled) return;
@@ -55,7 +52,8 @@ document.getElementById('login-form').addEventListener('submit', async e => {
   const errBox = document.getElementById('login-error');
   errBox.classList.add('hidden');
   try {
-    await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    usuarioActual = data.user;
     showApp();
   } catch (err) {
     errBox.textContent = 'Correo o contraseña incorrectos';
@@ -65,8 +63,20 @@ document.getElementById('login-form').addEventListener('submit', async e => {
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await fetch(API + '/auth/logout', { method: 'POST' });
+  usuarioActual = null;
   showLogin();
 });
+
+document.getElementById('btn-feedback').addEventListener('click', () =>
+  conBoton('btn-feedback', async () => {
+    const mensaje = prompt('¿Qué comentario querés dejar sobre la app?');
+    if (!mensaje || !mensaje.trim()) return;
+    await api('/feedback', {
+      method: 'POST', clave: nuevaClave(),
+      body: JSON.stringify({ mensaje: mensaje.trim() })
+    });
+    alert('¡Gracias! Tu comentario fue enviado.');
+  }));
 
 document.getElementById('btn-crear-cliente').addEventListener('click', () =>
   conBoton('btn-crear-cliente', async () => {
@@ -98,9 +108,6 @@ document.getElementById('btn-crear-fiado').addEventListener('click', () =>
     await cargarFiados();
   }));
 
-// El abono es el caso mas delicado: repetirlo descuadra la deuda real del
-// cliente. Se bloquea por fiado, no globalmente, para poder abonar a dos
-// fiados distintos sin esperar.
 const abonosEnCurso = new Set();
 
 async function pagar(fiadoId){
@@ -151,24 +158,107 @@ async function cargarFiados(){
     </tr>`).join('') || '<tr><td colspan="6">Sin fiados registrados todavía.</td></tr>';
 }
 
-// Delegacion de eventos: CSP no permite atributos onclick inline.
 document.getElementById('tabla-fiados').addEventListener('click', e => {
   const id = e.target.dataset.pagar;
   if (id) pagar(Number(id));
 });
 
+// ===================== PANEL DE ADMINISTRACION =====================
+
+function esAdmin(){
+  return usuarioActual && ROLES_ADMIN.includes(usuarioActual.rol);
+}
+
+function mostrarPanelAdminSiCorresponde(){
+  const badge = document.getElementById('rol-badge');
+  const panel = document.getElementById('panel-admin');
+
+  if (!usuarioActual) { badge.classList.add('hidden'); panel.classList.add('hidden'); return; }
+
+  badge.textContent = usuarioActual.rol.replace('_', ' ');
+  badge.classList.remove('hidden');
+
+  if (esAdmin()) {
+    panel.classList.remove('hidden');
+    cargarDashboard();
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    document.querySelectorAll('#panel-admin .card').forEach(c => c.classList.add('hidden'));
+
+    const destino = document.getElementById(`tab-${btn.dataset.tab}`);
+    destino.classList.remove('hidden');
+
+    if (btn.dataset.tab === 'dashboard') cargarDashboard();
+    if (btn.dataset.tab === 'tickets') cargarTickets();
+    if (btn.dataset.tab === 'feedback') cargarFeedbackAdmin();
+  });
+});
+
+async function cargarDashboard(){
+  try {
+    const s = await api('/admin/stats');
+    const porEstado = s.fiados_por_estado.map(f =>
+      `<div class="stat-box"><b>${f.n}</b><span>${f.estado} · L. ${Number(f.total).toFixed(2)}</span></div>`
+    ).join('');
+
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="stat-box"><b>${s.total_clientes}</b><span>clientes</span></div>
+      ${porEstado}
+      <div class="stat-box"><b>${s.tickets_abiertos}</b><span>tickets abiertos</span></div>
+      <div class="stat-box"><b>${s.total_feedback}</b><span>comentarios recibidos</span></div>
+    `;
+  } catch (e) { /* si no es admin, la ruta ya no se ve */ }
+}
+
+async function cargarTickets(){
+  const tickets = await api('/admin/tickets');
+  document.getElementById('tabla-tickets').innerHTML = tickets.map(t => `
+    <tr>
+      <td>${new Date(t.creado_en).toLocaleString('es-HN')}</td>
+      <td>${t.mensaje}${t.diagnostico ? `<div class="diag-box">Diagnóstico: ${t.diagnostico}</div>` : ''}</td>
+      <td>${t.ruta || '—'}</td>
+      <td><span class="badge ${t.estado}">${t.estado.replace('_',' ')}</span></td>
+      <td>${t.estado !== 'resuelto' ? `<button class="secondary small" data-resolver="${t.id}">Marcar resuelto</button>` : ''}</td>
+    </tr>`).join('') || '<tr><td colspan="5">Sin tickets registrados. ¡Buena señal!</td></tr>';
+}
+
+document.getElementById('tabla-tickets').addEventListener('click', async e => {
+  const id = e.target.dataset.resolver;
+  if (!id) return;
+  const diagnostico = prompt('Diagnóstico (qué causó el error, qué se hizo):') || '';
+  await api(`/admin/tickets/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ estado: 'resuelto', diagnostico })
+  });
+  cargarTickets();
+});
+
+async function cargarFeedbackAdmin(){
+  const items = await api('/admin/feedback');
+  document.getElementById('tabla-feedback').innerHTML = items.map(f => `
+    <tr>
+      <td>${new Date(f.creado_en).toLocaleString('es-HN')}</td>
+      <td>${f.usuario_email}</td>
+      <td>${f.mensaje}</td>
+    </tr>`).join('') || '<tr><td colspan="3">Todavía no hay comentarios.</td></tr>';
+}
+
 async function cargarTodo(){
   await cargarClientes();
   await cargarFiados();
+  mostrarPanelAdminSiCorresponde();
 }
 
 window.addEventListener('offline', () => document.getElementById('offline-banner').classList.remove('hidden'));
 window.addEventListener('online', () => document.getElementById('offline-banner').classList.add('hidden'));
 
-// Precarga las credenciales de la cuenta demo, si el servidor tiene una
-// configurada. Antes venian escritas en el value= del HTML; ahora salen de
-// DEMO_EMAIL/DEMO_PASSWORD, asi que retirar la demo es borrar dos variables
-// de entorno y no editar tres archivos.
 async function precargarDemo(){
   try {
     const res = await fetch(API + '/publico/demo', { credentials: 'same-origin' });
@@ -181,8 +271,6 @@ async function precargarDemo(){
   } catch { /* sin demo configurada: el formulario queda vacio */ }
 }
 
-// El boton de Google solo se muestra si el servidor tiene la integracion
-// configurada; asi no se ofrece un camino que terminaria en error.
 async function prepararGoogle(){
   try {
     const res = await fetch(API + '/auth/google/disponible', { credentials: 'same-origin' });
@@ -192,8 +280,6 @@ async function prepararGoogle(){
   } catch { /* se queda oculto */ }
 }
 
-// El callback de Google redirige con ?error= cuando algo falla (por ejemplo
-// una cuenta sin acceso). Se muestra en el mismo recuadro del formulario.
 function mostrarErrorDeUrl(){
   const params = new URLSearchParams(window.location.search);
   const error = params.get('error');
@@ -202,7 +288,6 @@ function mostrarErrorDeUrl(){
   const box = document.getElementById('login-error');
   box.textContent = error;
   box.classList.remove('hidden');
-  // Se limpia la URL para que al recargar no reaparezca el mensaje.
   window.history.replaceState({}, '', window.location.pathname);
 }
 
@@ -221,3 +306,7 @@ function mostrarErrorDeUrl(){
     prepararGoogle();
   }
 })();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}

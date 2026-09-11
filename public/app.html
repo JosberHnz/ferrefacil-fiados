@@ -1,335 +1,186 @@
-const API = '/api';
-let clientesCache = [];
-let usuarioActual = null;
-const ROLES_ADMIN = ['admin', 'super_admin'];
-
-// Clave unica por intento. El servidor la usa para reconocer reintentos y
-// no repetir la operacion (ver src/idempotencia.js).
-function nuevaClave(){
-  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  return Date.now() + '-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1F5468">
+<meta name="description" content="Control de fiados con mora automatica para Ferreteria Ferrefacil">
+<title>Fiados · Ferrefacil</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png">
+<style>
+:root{
+  /* Neutros frios */
+  --bg:#F4F6F7; --paper:#FFFFFF;
+  --ink:#182028; --ink-soft:#24303B;
+  --muted:#5D6C7B; --line:#DDE3E8;
+  /* Texto sobre superficies oscuras */
+  --on-dark:#C2CCD4; --on-dark-soft:#8B98A4;
+  /* Acento: azul pizarra */
+  --accent:#1F5468; --accent-dark:#143C4C;
+  --accent-soft:#E7EFF2; --accent-tint:#7FB3C4;
+  /* Estados, en tonos apagados */
+  --ok:#2C6A51; --ok-soft:#E4EEE9;
+  --warn:#7E621B; --warn-soft:#F2ECDC;
+  --danger:#9E3A31; --danger-soft:#F4E3E1;
+  --info:#3A5687; --info-soft:#E6EBF5;
+  --radius:12px; --shadow:0 6px 20px rgba(24,32,40,.10);
 }
-
-// Deshabilita un boton mientras su operacion esta en vuelo. Es la primera
-// barrera contra el doble clic; la garantia de verdad es la del servidor,
-// porque esta no cubre una recarga ni una segunda pestana.
-async function conBoton(id, fn){
-  const btn = document.getElementById(id);
-  if (btn.disabled) return;
-  const texto = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Guardando...';
-  try { await fn(); }
-  catch (e) { alert(e.message || 'No se pudo completar la operacion'); }
-  finally { btn.disabled = false; btn.textContent = texto; }
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--ink);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0}
+header .acciones{display:flex;gap:8px;align-items:center}
+header .rol-badge{background:rgba(255,255,255,.14);color:var(--on-dark);font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;text-transform:uppercase}
+main{max-width:900px;margin:0 auto;padding:24px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+input,select,button,textarea{font-size:15px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);width:100%;box-sizing:border-box;font-family:inherit}
+button{background:var(--accent);color:#fff;border:none;cursor:pointer;width:auto;font-weight:600}
+button:hover{background:var(--accent-dark)}
+button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button.small{padding:6px 10px;font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.row > *{flex:1;min-width:140px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:14px}
+.badge{padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
+.badge.pendiente{background:var(--warn-soft);color:var(--warn)}
+.badge.parcial{background:var(--info-soft);color:var(--info)}
+.badge.pagado{background:var(--ok-soft);color:var(--ok)}
+.badge.abierto{background:var(--danger-soft);color:var(--danger)}
+.badge.en_revision{background:var(--info-soft);color:var(--info)}
+.badge.resuelto{background:var(--ok-soft);color:var(--ok)}
+.mora{color:var(--danger);font-weight:700}
+#login-screen{position:fixed;inset:0;background:var(--ink);display:flex;align-items:center;justify-content:center}
+.login-card{background:#fff;padding:30px;border-radius:var(--radius);width:320px}
+.hidden{display:none !important}
+.error{background:var(--danger-soft);color:var(--danger);padding:10px;border-radius:8px;font-size:13px;margin-bottom:10px}
+.offline-banner{background:var(--warn-soft);color:var(--warn);padding:8px 24px;font-size:13px;text-align:center}
+.separador{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--muted);font-size:12px}
+.separador::before,.separador::after{content:"";flex:1;height:1px;background:var(--line)}
+.btn-google{
+  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  color:var(--ink);text-decoration:none;font-size:15px;font-weight:600;
+  transition:background .15s,box-shadow .15s;
 }
+.btn-google:hover{background:var(--bg);box-shadow:0 2px 8px rgba(24,32,40,.10)}
 
-async function api(path, opts = {}) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (opts.clave) headers['Idempotency-Key'] = opts.clave;
+/* ---- panel de administracion ---- */
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tabs button{background:#fff;color:var(--muted);border:1px solid var(--line);width:auto}
+.tabs button.activo{background:var(--accent);color:#fff;border-color:var(--accent)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.stat-box{background:var(--accent-soft);border-radius:10px;padding:14px;text-align:center}
+.stat-box b{display:block;font-size:24px;color:var(--accent)}
+.stat-box span{font-size:12px;color:var(--muted)}
+.diag-box{margin-top:6px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
 
-  const res = await fetch(API + path, {
-    credentials: 'same-origin',
-    ...opts,
-    headers: { ...headers, ...(opts.headers || {}) }
-  });
-  if (res.status === 401) { showLogin(); throw new Error('No autenticado'); }
-  if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Error');
-  return res.json();
-}
+<div id="login-screen">
+  <div class="login-card">
+    <h2>Fiados · Ferrefacil</h2>
+    <p style="color:var(--muted);font-size:14px">Iniciá sesión para continuar</p>
+    <div id="login-error" class="error hidden"></div>
+    <form id="login-form">
+      <div class="row"><input id="login-email" type="email" placeholder="correo" aria-label="Correo electrónico" autocomplete="username" required></div>
+      <div class="row"><input id="login-password" type="password" placeholder="contraseña" aria-label="Contraseña" autocomplete="current-password" required></div>
+      <button type="submit">Entrar</button>
+    </form>
 
-function showLogin(){
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('app').classList.add('hidden');
-}
-function showApp(){
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  cargarTodo();
-}
+    <div id="google-bloque" class="hidden">
+      <div class="separador"><span>o</span></div>
+      <a id="btn-google" class="btn-google" href="/api/auth/google">
+        <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.6 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.1 5.3-4.6 7l7.6 5.9c4.4-4.1 6.7-10.750 6.7-17.4z"/>
+          <path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-2.9-.8-4.7s.3-3.3.8-4.7l-7.8-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.8-6.1z"/>
+          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.8 2.3-8.3 2.3-6.4 0-11.7-3.7-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/>
+        </svg>
+        Continuar con Google
+      </a>
+    </div>
 
-document.getElementById('login-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value;
-  const password = document.getElementById('login-password').value;
-  const errBox = document.getElementById('login-error');
-  errBox.classList.add('hidden');
-  try {
-    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    usuarioActual = data.user;
-    showApp();
-  } catch (err) {
-    errBox.textContent = 'Correo o contraseña incorrectos';
-    errBox.classList.remove('hidden');
-  }
-});
+    <p style="margin:16px 0 0;font-size:13px"><a href="/" style="color:var(--muted)">← Volver al inicio</a></p>
+  </div>
+</div>
 
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  await fetch(API + '/auth/logout', { method: 'POST' });
-  usuarioActual = null;
-  showLogin();
-});
+<div id="app" class="hidden">
+  <div id="offline-banner" class="offline-banner hidden">Estás sin conexión. Mostrando los últimos datos guardados.</div>
+  <header>
+    <h1>🔧 Fiados · Ferrefacil</h1>
+    <div class="acciones">
+      <span id="rol-badge" class="rol-badge hidden"></span>
+      <button class="secondary small" id="btn-feedback">Dejar comentario</button>
+      <button class="secondary small" id="btn-logout">Salir</button>
+    </div>
+  </header>
+  <main>
 
-document.getElementById('btn-feedback').addEventListener('click', () =>
-  conBoton('btn-feedback', async () => {
-    const mensaje = prompt('¿Qué comentario querés dejar sobre la app?');
-    if (!mensaje || !mensaje.trim()) return;
-    await api('/feedback', {
-      method: 'POST', clave: nuevaClave(),
-      body: JSON.stringify({ mensaje: mensaje.trim() })
-    });
-    alert('¡Gracias! Tu comentario fue enviado.');
-  }));
+    <!-- Panel de administracion: solo visible para admin/super_admin -->
+    <div id="panel-admin" class="hidden">
+      <div class="tabs">
+        <button type="button" class="activo" data-tab="dashboard">Dashboard</button>
+        <button type="button" data-tab="tickets">Tickets de errores</button>
+        <button type="button" data-tab="feedback">Feedback</button>
+      </div>
 
-document.getElementById('btn-crear-cliente').addEventListener('click', () =>
-  conBoton('btn-crear-cliente', async () => {
-    const nombre = document.getElementById('c-nombre').value.trim();
-    const telefono = document.getElementById('c-telefono').value.trim();
-    if (!nombre) return alert('El nombre es requerido');
-    await api('/clientes', {
-      method: 'POST', clave: nuevaClave(),
-      body: JSON.stringify({ nombre, telefono })
-    });
-    document.getElementById('c-nombre').value = '';
-    document.getElementById('c-telefono').value = '';
-    await cargarClientes();
-  }));
+      <div id="tab-dashboard" class="card">
+        <h3>Resumen del negocio</h3>
+        <div id="stats-grid" class="stats-grid"></div>
+      </div>
 
-document.getElementById('btn-crear-fiado').addEventListener('click', () =>
-  conBoton('btn-crear-fiado', async () => {
-    const cliente_id = document.getElementById('f-cliente').value;
-    const descripcion = document.getElementById('f-desc').value.trim();
-    const monto = document.getElementById('f-monto').value;
-    const fecha_vencimiento = document.getElementById('f-vence').value;
-    if (!cliente_id || !descripcion || !monto || !fecha_vencimiento) return alert('Completá todos los campos');
-    await api('/fiados', {
-      method: 'POST', clave: nuevaClave(),
-      body: JSON.stringify({ cliente_id, descripcion, monto, fecha_vencimiento })
-    });
-    document.getElementById('f-desc').value = '';
-    document.getElementById('f-monto').value = '';
-    await cargarFiados();
-  }));
+      <div id="tab-tickets" class="card hidden">
+        <h3>Tickets de errores</h3>
+        <table>
+          <thead><tr><th>Fecha</th><th>Mensaje</th><th>Ruta</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="tabla-tickets"></tbody>
+        </table>
+      </div>
 
-// El abono es el caso mas delicado: repetirlo descuadra la deuda real del
-// cliente. Se bloquea por fiado, no globalmente, para poder abonar a dos
-// fiados distintos sin esperar.
-const abonosEnCurso = new Set();
+      <div id="tab-feedback" class="card hidden">
+        <h3>Feedback recibido</h3>
+        <table>
+          <thead><tr><th>Fecha</th><th>Usuario</th><th>Mensaje</th></tr></thead>
+          <tbody id="tabla-feedback"></tbody>
+        </table>
+      </div>
+    </div>
 
-async function pagar(fiadoId){
-  if (abonosEnCurso.has(fiadoId)) return;
+    <div class="card">
+      <h3>Nuevo cliente</h3>
+      <div class="row">
+        <input id="c-nombre" placeholder="Nombre del cliente" aria-label="Nombre del cliente">
+        <input id="c-telefono" placeholder="Teléfono" aria-label="Teléfono del cliente">
+      </div>
+      <button id="btn-crear-cliente">Agregar cliente</button>
+    </div>
 
-  const monto = prompt('¿Cuánto se abona?');
-  if (!monto) return;
+    <div class="card">
+      <h3>Registrar fiado</h3>
+      <div class="row">
+        <select id="f-cliente" aria-label="Cliente"></select>
+        <input id="f-desc" placeholder="Descripción (ej. cemento 2 sacos)" aria-label="Descripción del fiado">
+      </div>
+      <div class="row">
+        <input id="f-monto" type="number" placeholder="Monto (L.)" aria-label="Monto del fiado en lempiras">
+        <input id="f-vence" type="date" aria-label="Fecha de vencimiento del fiado">
+      </div>
+      <button id="btn-crear-fiado">Registrar fiado</button>
+    </div>
 
-  abonosEnCurso.add(fiadoId);
-  const boton = document.querySelector(`[data-pagar="${fiadoId}"]`);
-  if (boton) boton.disabled = true;
+    <div class="card">
+      <h3>Fiados</h3>
+      <table>
+        <thead><tr><th>Cliente</th><th>Descripción</th><th>Saldo</th><th>Mora</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="tabla-fiados"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
 
-  try {
-    await api(`/fiados/${fiadoId}/pagos`, {
-      method: 'POST', clave: nuevaClave(),
-      body: JSON.stringify({ monto: Number(monto) })
-    });
-    await cargarFiados();
-  } catch (e) {
-    alert(e.message || 'No se pudo registrar el abono');
-    if (boton) boton.disabled = false;
-  } finally {
-    abonosEnCurso.delete(fiadoId);
-  }
-}
-
-async function cargarClientes(){
-  clientesCache = await api('/clientes');
-  const sel = document.getElementById('f-cliente');
-  sel.innerHTML = clientesCache.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-}
-
-function nombreCliente(id){
-  const c = clientesCache.find(x => x.id === id);
-  return c ? c.nombre : '—';
-}
-
-async function cargarFiados(){
-  const fiados = await api('/fiados');
-  document.getElementById('tabla-fiados').innerHTML = fiados.map(f => `
-    <tr>
-      <td>${nombreCliente(f.cliente_id)}</td>
-      <td>${f.descripcion}</td>
-      <td>L. ${f.saldo.toFixed(2)}</td>
-      <td>${f.dias_mora > 0 ? `<span class="mora">${f.dias_mora} días</span>` : '—'}</td>
-      <td><span class="badge ${f.estado}">${f.estado}</span></td>
-      <td>${f.estado !== 'pagado' ? `<button class="secondary" data-pagar="${f.id}">Abonar</button>` : ''}</td>
-    </tr>`).join('') || '<tr><td colspan="6">Sin fiados registrados todavía.</td></tr>';
-}
-
-// Delegacion de eventos: CSP no permite atributos onclick inline.
-document.getElementById('tabla-fiados').addEventListener('click', e => {
-  const id = e.target.dataset.pagar;
-  if (id) pagar(Number(id));
-});
-
-// ===================== PANEL DE ADMINISTRACION =====================
-
-function esAdmin(){
-  return usuarioActual && ROLES_ADMIN.includes(usuarioActual.rol);
-}
-
-function mostrarPanelAdminSiCorresponde(){
-  const badge = document.getElementById('rol-badge');
-  const panel = document.getElementById('panel-admin');
-
-  if (!usuarioActual) { badge.classList.add('hidden'); panel.classList.add('hidden'); return; }
-
-  badge.textContent = usuarioActual.rol.replace('_', ' ');
-  badge.classList.remove('hidden');
-
-  if (esAdmin()) {
-    panel.classList.remove('hidden');
-    cargarDashboard();
-  } else {
-    panel.classList.add('hidden');
-  }
-}
-
-document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.classList.remove('activo'));
-    btn.classList.add('activo');
-    document.querySelectorAll('#panel-admin .card').forEach(c => c.classList.add('hidden'));
-
-    const destino = document.getElementById(`tab-${btn.dataset.tab}`);
-    destino.classList.remove('hidden');
-
-    if (btn.dataset.tab === 'dashboard') cargarDashboard();
-    if (btn.dataset.tab === 'tickets') cargarTickets();
-    if (btn.dataset.tab === 'feedback') cargarFeedbackAdmin();
-  });
-});
-
-async function cargarDashboard(){
-  try {
-    const s = await api('/admin/stats');
-    const porEstado = s.fiados_por_estado.map(f =>
-      `<div class="stat-box"><b>${f.n}</b><span>${f.estado} · L. ${Number(f.total).toFixed(2)}</span></div>`
-    ).join('');
-
-    document.getElementById('stats-grid').innerHTML = `
-      <div class="stat-box"><b>${s.total_clientes}</b><span>clientes</span></div>
-      ${porEstado}
-      <div class="stat-box"><b>${s.tickets_abiertos}</b><span>tickets abiertos</span></div>
-      <div class="stat-box"><b>${s.total_feedback}</b><span>comentarios recibidos</span></div>
-    `;
-  } catch (e) { /* si no es admin, la ruta ya no se ve */ }
-}
-
-async function cargarTickets(){
-  const tickets = await api('/admin/tickets');
-  document.getElementById('tabla-tickets').innerHTML = tickets.map(t => `
-    <tr>
-      <td>${new Date(t.creado_en).toLocaleString('es-HN')}</td>
-      <td>${t.mensaje}${t.diagnostico ? `<div class="diag-box">Diagnóstico: ${t.diagnostico}</div>` : ''}</td>
-      <td>${t.ruta || '—'}</td>
-      <td><span class="badge ${t.estado}">${t.estado.replace('_',' ')}</span></td>
-      <td>${t.estado !== 'resuelto' ? `<button class="secondary small" data-resolver="${t.id}">Marcar resuelto</button>` : ''}</td>
-    </tr>`).join('') || '<tr><td colspan="5">Sin tickets registrados. ¡Buena señal!</td></tr>';
-}
-
-document.getElementById('tabla-tickets').addEventListener('click', async e => {
-  const id = e.target.dataset.resolver;
-  if (!id) return;
-  const diagnostico = prompt('Diagnóstico (qué causó el error, qué se hizo):') || '';
-  await api(`/admin/tickets/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ estado: 'resuelto', diagnostico })
-  });
-  cargarTickets();
-});
-
-async function cargarFeedbackAdmin(){
-  const items = await api('/admin/feedback');
-  document.getElementById('tabla-feedback').innerHTML = items.map(f => `
-    <tr>
-      <td>${new Date(f.creado_en).toLocaleString('es-HN')}</td>
-      <td>${f.usuario_email}</td>
-      <td>${f.mensaje}</td>
-    </tr>`).join('') || '<tr><td colspan="3">Todavía no hay comentarios.</td></tr>';
-}
-
-async function cargarTodo(){
-  await cargarClientes();
-  await cargarFiados();
-  mostrarPanelAdminSiCorresponde();
-}
-
-window.addEventListener('offline', () => document.getElementById('offline-banner').classList.remove('hidden'));
-window.addEventListener('online', () => document.getElementById('offline-banner').classList.add('hidden'));
-
-// Precarga las credenciales de la cuenta demo, si el servidor tiene una
-// configurada. Antes venian escritas en el value= del HTML; ahora salen de
-// DEMO_EMAIL/DEMO_PASSWORD, asi que retirar la demo es borrar dos variables
-// de entorno y no editar tres archivos.
-async function precargarDemo(){
-  try {
-    const res = await fetch(API + '/publico/demo', { credentials: 'same-origin' });
-    if (!res.ok) return;
-    const { email, password } = await res.json();
-    const inEmail = document.getElementById('login-email');
-    const inPass = document.getElementById('login-password');
-    if (inEmail && !inEmail.value) inEmail.value = email;
-    if (inPass && !inPass.value) inPass.value = password;
-  } catch { /* sin demo configurada: el formulario queda vacio */ }
-}
-
-// El boton de Google solo se muestra si el servidor tiene la integracion
-// configurada; asi no se ofrece un camino que terminaria en error.
-async function prepararGoogle(){
-  try {
-    const res = await fetch(API + '/auth/google/disponible', { credentials: 'same-origin' });
-    if (!res.ok) return;
-    const { disponible } = await res.json();
-    if (disponible) document.getElementById('google-bloque').classList.remove('hidden');
-  } catch { /* se queda oculto */ }
-}
-
-// El callback de Google redirige con ?error= cuando algo falla (por ejemplo
-// una cuenta sin acceso). Se muestra en el mismo recuadro del formulario.
-function mostrarErrorDeUrl(){
-  const params = new URLSearchParams(window.location.search);
-  const error = params.get('error');
-  if (!error) return;
-
-  const box = document.getElementById('login-error');
-  box.textContent = error;
-  box.classList.remove('hidden');
-  // Se limpia la URL para que al recargar no reaparezca el mensaje.
-  window.history.replaceState({}, '', window.location.pathname);
-}
-
-// Verifica sesion existente al cargar
-(async () => {
-  try {
-    // /api/clientes no devuelve quien soy, asi que se usa /api/admin/stats
-    // como sonda: si responde 200 soy admin, si 403 estoy logueado pero no
-    // soy admin, si 401 no hay sesion. En los dos primeros casos, ya hay
-    // sesion y toca mostrar la app.
-    await api('/clientes');
-    // La sesion existe, pero no sabemos el rol todavia sin habernos logueado
-    // en este ciclo de carga. Como no hay un endpoint "quien soy", se asume
-    // que si /clientes respondio bien la sesion es valida; el panel admin
-    // se muestra solo tras un login fresco en esta misma pestana.
-    showApp();
-  } catch {
-    showLogin();
-    mostrarErrorDeUrl();
-    precargarDemo();
-    prepararGoogle();
-  }
-})();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js');
-}
+<script src="/app.js"></script>
+</body>
+</html>
