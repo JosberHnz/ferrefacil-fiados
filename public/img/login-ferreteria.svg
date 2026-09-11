@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 124" width="300" height="124" role="img" aria-label="Fachada de la ferreteria">
+  <defs>
+    <linearGradient id="muro" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EEF4F7"/>
+      <stop offset="1" stop-color="#DCE7EC"/>
+    </linearGradient>
+    <linearGradient id="oro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6CD72"/>
+      <stop offset="1" stop-color="#D2952A"/>
+    </linearGradient>
+    <clipPath id="toldo">
+      <rect x="66" y="42" width="168" height="24"/>
+    </clipPath>
+  </defs>
+  <style>
+    .flota{animation:flota 5s ease-in-out infinite}
+    .flota2{animation:flota 6s ease-in-out -2s infinite}
+    .luz{animation:luz 3s ease-in-out infinite}
+    .luz2{animation-delay:-1.5s}
+    .chispa{transform-box:fill-box;transform-origin:center;animation:chispa 2.6s ease-in-out infinite}
+    .c2{animation-delay:-1.3s}
+    @keyframes flota{50%{transform:translateY(-5px)}}
+    @keyframes luz{0%,100%{opacity:.5}50%{opacity:1}}
+    @keyframes chispa{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>
+
+  <circle cx="54" cy="48" r="30" fill="#E7EFF2"/>
+  <circle cx="252" cy="30" r="16" fill="#E7EFF2"/>
+  <ellipse cx="150" cy="118" rx="120" ry="5" fill="#182028" opacity=".08"/>
+
+  <!-- edificio -->
+  <rect x="74" y="40" width="152" height="77" rx="5" fill="url(#muro)"/>
+
+  <!-- letrero -->
+  <rect x="66" y="14" width="168" height="28" rx="7" fill="#182028"/>
+  <text x="150" y="32.5" text-anchor="middle" font-family="Inter,Arial,Helvetica,sans-serif" font-size="11" font-weight="800" letter-spacing="2.5" fill="#FFFFFF">FERREFACIL</text>
+  <circle class="luz" cx="80" cy="28" r="3" fill="#F6CD72"/>
+  <circle class="luz luz2" cx="220" cy="28" r="3" fill="#F6CD72"/>
+
+  <!-- toldo a rayas -->
+  <g clip-path="url(#toldo)">
+    <rect x="66" y="42" width="21" height="24" fill="#1F5468"/>
+    <rect x="87" y="42" width="21" height="24" fill="#7FB3C4"/>
+    <rect x="108" y="42" width="21" height="24" fill="#1F5468"/>
+    <rect x="129" y="42" width="21" height="24" fill="#7FB3C4"/>
+    <rect x="150" y="42" width="21" height="24" fill="#1F5468"/>
+    <rect x="171" y="42" width="21" height="24" fill="#7FB3C4"/>
+    <rect x="192" y="42" width="21" height="24" fill="#1F5468"/>
+    <rect x="213" y="42" width="21" height="24" fill="#7FB3C4"/>
+  </g>
+  <circle cx="76.5" cy="66" r="10.5" fill="#1F5468"/>
+  <circle cx="97.5" cy="66" r="10.5" fill="#7FB3C4"/>
+  <circle cx="118.5" cy="66" r="10.5" fill="#1F5468"/>
+  <circle cx="139.5" cy="66" r="10.5" fill="#7FB3C4"/>
+  <circle cx="160.5" cy="66" r="10.5" fill="#1F5468"/>
+  <circle cx="181.5" cy="66" r="10.5" fill="#7FB3C4"/>
+  <circle cx="202.5" cy="66" r="10.5" fill="#1F5468"/>
+  <circle cx="223.5" cy="66" r="10.5" fill="#7FB3C4"/>
+
+  <!-- vitrina izquierda: llave -->
+  <rect x="86" y="84" width="40" height="26" rx="3" fill="#FFFFFF" stroke="#C9D6DD" stroke-width="1.5"/>
+  <g transform="translate(104 97) rotate(-35)">
+    <rect x="-12" y="-2.5" width="17" height="5" rx="2.5" fill="#5D6C7B"/>
+    <circle cx="8" cy="0" r="5.5" fill="#5D6C7B"/>
+    <rect x="8" y="-2" width="7" height="4" fill="#FFFFFF"/>
+  </g>
+
+  <!-- puerta -->
+  <rect x="135" y="78" width="30" height="39" rx="3" fill="#1F5468"/>
+  <rect x="139" y="82" width="22" height="15" rx="2" fill="#7FB3C4" opacity=".55"/>
+  <circle cx="159.5" cy="100" r="1.8" fill="#F6CD72"/>
+
+  <!-- vitrina derecha: grafica -->
+  <rect x="174" y="84" width="40" height="26" rx="3" fill="#FFFFFF" stroke="#C9D6DD" stroke-width="1.5"/>
+  <rect x="183" y="97" width="5" height="9" rx="1" fill="#1C7CB5"/>
+  <rect x="191.5" y="91" width="5" height="15" rx="1" fill="#E07A2E"/>
+  <rect x="200" y="94" width="5" height="12" rx="1" fill="#2F8A5F"/>
+
+  <!-- recibo flotante -->
+  <g class="flota2">
+    <g transform="translate(40 88)">
+      <path d="M-14 -20h28v36l-4.7-3-4.7 3-4.6-3-4.7 3-4.6-3-4.7 3z" fill="#FFFFFF" stroke="#C9D6DD" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="-8" y="-13" width="16" height="3" rx="1.5" fill="#182028" opacity=".7"/>
+      <rect x="-8" y="-6" width="11" height="2.5" rx="1.25" fill="#5D6C7B" opacity=".4"/>
+      <circle cx="4" cy="5" r="6" fill="#2F8A5F"/>
+      <path d="M1.2 5.2l2 2 3.8-4" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- moneda flotante -->
+  <g class="flota">
+    <g transform="translate(258 86)">
+      <ellipse cx="0" cy="3" rx="15" ry="15" fill="#A86F14"/>
+      <circle cx="0" cy="0" r="15" fill="url(#oro)"/>
+      <circle cx="0" cy="0" r="10.5" fill="none" stroke="#C48A22" stroke-width="1.5"/>
+      <text x="0" y="4.2" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" fill="#8A5A0B">L</text>
+    </g>
+  </g>
+
+  <path class="chispa" d="M26 30l1.8 5 5 1.8-5 1.8-1.8 5-1.8-5-5-1.8 5-1.8z" fill="#E07A2E"/>
+  <path class="chispa c2" d="M276 50l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="#1C7CB5"/>
+</svg>

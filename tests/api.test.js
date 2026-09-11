@@ -173,6 +173,61 @@ describe('enrutado de paginas', () => {
     const res = await request(app).get('/');
     expect(res.text).toContain('href="/app"');
   });
+
+  // La CSP solo permite imagenes de 'self' y data:, asi que las ilustraciones
+  // tienen que vivir en public/ y no en un servicio externo.
+  test('las ilustraciones de la app se sirven como SVG locales', async () => {
+    for (const img of ['dashboard-hero', 'login-ferreteria', 'vacio-todo-al-dia']) {
+      const res = await request(app).get(`/img/${img}.svg`);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
+    }
+  });
+});
+
+describe('dashboard de administracion', () => {
+  const agent = request.agent(app);
+
+  beforeAll(async () => {
+    await db.query(
+      'insert into usuarios (email, password_hash, rol) values ($1, $2, $3)',
+      ['admin.dashboard@ferrefacil.com', bcrypt.hashSync('Admin2026!', 10), 'super_admin']
+    );
+    await agent.post('/api/auth/login').send({ email: 'admin.dashboard@ferrefacil.com', password: 'Admin2026!' });
+  });
+
+  test('un usuario sin rol admin no puede ver las estadisticas', async () => {
+    const demo = request.agent(app);
+    await demo.post('/api/auth/login').send({ email: 'demo@ferrefacil.com', password: 'Demo2026!' });
+    const res = await demo.get('/api/admin/stats');
+    expect(res.status).toBe(403);
+  });
+
+  test('/api/admin/stats trae la cartera pendiente y el movimiento de 6 meses', async () => {
+    const antes = (await agent.get('/api/admin/stats')).body;
+
+    const cliente = await agent.post('/api/clientes').send({ nombre: 'Dashboard Mensual' });
+    const fiado = await agent.post('/api/fiados').send({
+      cliente_id: cliente.body.id,
+      descripcion: 'Varilla corrugada',
+      monto: 300,
+      fecha_vencimiento: '2030-01-01'
+    });
+    await agent.post(`/api/fiados/${fiado.body.id}/pagos`).send({ monto: 120 });
+
+    const res = await agent.get('/api/admin/stats');
+    expect(res.status).toBe(200);
+
+    expect(res.body.cartera.saldo_pendiente).toBeCloseTo(antes.cartera.saldo_pendiente + 180, 2);
+    expect(res.body.cartera.fiados_abiertos).toBe(antes.cartera.fiados_abiertos + 1);
+
+    const meses = res.body.movimiento_mensual;
+    expect(meses).toHaveLength(6);
+    meses.forEach(m => expect(m.mes).toMatch(/^\d{4}-\d{2}$/));
+    // El mes en curso es el ultimo y ahi cae lo recien registrado.
+    expect(meses[5].fiado).toBeCloseTo(antes.movimiento_mensual[5].fiado + 300, 2);
+    expect(meses[5].abonado).toBeCloseTo(antes.movimiento_mensual[5].abonado + 120, 2);
+  });
 });
 
 describe('animaciones de la landing', () => {

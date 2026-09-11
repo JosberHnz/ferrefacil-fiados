@@ -3,6 +3,10 @@ let clientesCache = [];
 let usuarioActual = null;
 const ROLES_ADMIN = new Set(['admin', 'super_admin']);
 
+// Quien pide menos movimiento en su sistema no recibe contadores ni trazos
+// animados: las cifras aparecen directamente con su valor final.
+const MOVIMIENTO_REDUCIDO = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+
 function escapeHtml(valor) {
   return String(valor ?? '')
     .replaceAll('&', '&amp;')
@@ -19,10 +23,29 @@ function nuevaClave(){
   return Date.now() + '-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ===================== formatos =====================
+
+const FORMATO_LEMPIRAS = new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const FORMATO_ENTERO = new Intl.NumberFormat('es-HN', { maximumFractionDigits: 0 });
+
+function lempiras(valor){ return 'L. ' + FORMATO_LEMPIRAS.format(Number(valor) || 0); }
+function entero(valor){ return FORMATO_ENTERO.format(Math.round(Number(valor) || 0)); }
+function porcentaje(parte, total){ return total > 0 ? Math.round((parte / total) * 100) : 0; }
+function capitalizar(texto){ return texto.charAt(0).toUpperCase() + texto.slice(1); }
+
 // ===================== UI: toasts y modales (reemplazan alert/prompt/confirm) =====================
 
 const ICONO_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
 const ICONO_ERROR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';
+const ICONO_CLIENTES = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>';
+const ICONO_RELOJ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+const ICONO_ALERTA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>';
+const ICONO_TICKET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9a3 3 0 000 6v3a2 2 0 002 2h14a2 2 0 002-2v-3a3 3 0 010-6V6a2 2 0 00-2-2H5a2 2 0 00-2 2z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>';
+const ICONO_COMENTARIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+const ICONO_CARRITO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>';
+const ICONO_MONEDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>';
+
+const IMG_TODO_AL_DIA = '/img/vacio-todo-al-dia.svg';
 
 // El icono (constante fija, sin datos externos) y el mensaje (variable) se
 // insertan por separado: el icono via innerHTML porque nunca cambia, el
@@ -33,6 +56,18 @@ function iconoElemento(svg){
   const span = document.createElement('span');
   span.innerHTML = svg;
   return span;
+}
+
+function crearSpinner(){
+  const spinner = document.createElement('span');
+  spinner.className = 'spinner';
+  spinner.setAttribute('aria-hidden', 'true');
+  return spinner;
+}
+
+/** Ejecuta fn dos cuadros despues: el navegador ya pinto el estado inicial y la transicion se ve. */
+function trasPintar(fn){
+  requestAnimationFrame(() => requestAnimationFrame(fn));
 }
 
 function toast(mensaje, tipo = 'ok'){
@@ -163,6 +198,38 @@ function confirmarModal(mensaje){
   });
 }
 
+/** Sacude la tarjeta para señalar un error; se omite con movimiento reducido. */
+function sacudir(el){
+  if (!el || MOVIMIENTO_REDUCIDO) return;
+  el.classList.remove('sacudir');
+  // Leer offsetWidth fuerza a reiniciar la animacion si ya se estaba sacudiendo.
+  el.getBoundingClientRect();
+  el.classList.add('sacudir');
+  el.addEventListener('animationend', () => el.classList.remove('sacudir'), { once: true });
+}
+
+/** Lleva un numero desde su valor anterior hasta el nuevo, con desaceleracion. */
+function animarNumero(el, destino, formato = entero){
+  const final = Number(destino) || 0;
+  const desde = Number(el.dataset.valor || 0);
+  el.dataset.valor = String(final);
+
+  if (MOVIMIENTO_REDUCIDO || desde === final) {
+    el.textContent = formato(final);
+    return;
+  }
+
+  const inicio = performance.now();
+  const duracion = 1100;
+  const paso = ahora => {
+    const t = Math.min(1, (ahora - inicio) / duracion);
+    const suavizado = 1 - Math.pow(1 - t, 3);
+    el.textContent = formato(desde + (final - desde) * suavizado);
+    if (t < 1 && el.dataset.valor === String(final)) requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+
 // ===================== resto de la app =====================
 
 async function conBoton(id, fn){
@@ -170,7 +237,7 @@ async function conBoton(id, fn){
   if (btn.disabled) return;
   const contenidoOriginal = btn.innerHTML;
   btn.disabled = true;
-  btn.textContent = 'Guardando...';
+  btn.replaceChildren(crearSpinner(), 'Guardando...');
   try { await fn(); }
   catch (e) { toast(e.message || 'No se pudo completar la operacion', 'error'); }
   finally { btn.disabled = false; btn.innerHTML = contenidoOriginal; }
@@ -214,13 +281,23 @@ document.getElementById('login-form').addEventListener('submit', async e => {
   e.preventDefault();
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
+  const boton = e.target.querySelector('button[type="submit"]');
+  const textoOriginal = boton.textContent;
+
   document.getElementById('login-error').classList.add('hidden');
+  boton.disabled = true;
+  boton.replaceChildren(crearSpinner(), 'Entrando...');
+
   try {
     const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     usuarioActual = data.user;
     showApp();
   } catch (err) {
     mostrarErrorLogin('Correo o contraseña incorrectos');
+    sacudir(document.querySelector('.login-card'));
+  } finally {
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
   }
 });
 
@@ -329,14 +406,17 @@ function paramsFiltroFiados(){
   return qs ? `?${qs}` : '';
 }
 
+// Mas de 15 dias de mora es "critica", el mismo umbral que usa el dashboard.
+const DIAS_MORA_CRITICA = 15;
+
 async function cargarFiados(){
   const fiados = await api('/fiados' + paramsFiltroFiados());
   document.getElementById('tabla-fiados').innerHTML = fiados.map(f => `
     <tr>
       <td>${escapeHtml(f.cliente_nombre || nombreCliente(f.cliente_id))}</td>
       <td>${escapeHtml(f.descripcion)}</td>
-      <td>L. ${f.saldo.toFixed(2)}</td>
-      <td>${f.dias_mora > 0 ? `<span class="mora">${f.dias_mora} días</span>` : '—'}</td>
+      <td>${lempiras(f.saldo)}</td>
+      <td>${f.dias_mora > 0 ? `<span class="mora${f.dias_mora > DIAS_MORA_CRITICA ? ' critica' : ''}">${f.dias_mora} días</span>` : '—'}</td>
       <td><span class="badge ${f.estado}">${f.estado}</span></td>
       <td>${f.estado !== 'pagado' ? `<button class="secondary small" data-pagar="${f.id}">Abonar</button>` : ''}</td>
     </tr>`).join('') || '<tr><td colspan="6"><div class="vacio">Sin fiados que coincidan con la búsqueda.</div></td></tr>';
@@ -365,6 +445,35 @@ function esAdmin(){
   return usuarioActual && ROLES_ADMIN.has(usuarioActual.rol);
 }
 
+/**
+ * Coloca la "pastilla" de fondo debajo del boton activo de un grupo
+ * (pestanas o control segmentado). Al cambiar de boton, la transicion CSS
+ * la desliza hasta su nueva posicion.
+ */
+function moverPastilla(grupo){
+  const pastilla = grupo.querySelector('.pastilla');
+  const activo = grupo.querySelector('button.activo');
+  if (!pastilla || !activo || !activo.offsetWidth) return;
+
+  pastilla.style.width = `${activo.offsetWidth}px`;
+  pastilla.style.height = `${activo.offsetHeight}px`;
+  pastilla.style.transform = `translate(${activo.offsetLeft}px, ${activo.offsetTop}px)`;
+
+  // La transicion se activa despues de la primera colocacion: si no, la
+  // pastilla entraria deslizandose desde la esquina al abrir el panel.
+  if (!grupo.classList.contains('con-pastilla')) {
+    grupo.classList.add('con-pastilla');
+    trasPintar(() => pastilla.classList.add('lista'));
+  }
+}
+
+function moverTodasLasPastillas(){
+  document.querySelectorAll('.tabs, .segmentado').forEach(moverPastilla);
+}
+
+window.addEventListener('resize', moverTodasLasPastillas);
+document.fonts?.ready.then(moverTodasLasPastillas);
+
 function mostrarPanelAdminSiCorresponde(){
   const badge = document.getElementById('rol-badge');
   const badgeTexto = document.getElementById('rol-badge-texto');
@@ -377,6 +486,7 @@ function mostrarPanelAdminSiCorresponde(){
 
   if (esAdmin()) {
     panel.classList.remove('hidden');
+    trasPintar(moverTodasLasPastillas);
     cargarDashboard();
   } else {
     panel.classList.add('hidden');
@@ -393,6 +503,7 @@ document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
 
     const destino = document.getElementById(`tab-${btn.dataset.tab}`);
     destino?.classList.remove('hidden');
+    moverTodasLasPastillas();
 
     if (btn.dataset.tab === 'dashboard') cargarDashboard();
     if (btn.dataset.tab === 'tickets') cargarTickets();
@@ -400,114 +511,627 @@ document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
   });
 });
 
-function crearStatBox(valor, etiqueta, alerta) {
+// ---------- tooltip compartido por todas las graficas ----------
+
+let tooltipEl = null;
+
+/**
+ * Muestra el tooltip junto al puntero. Cada fila es { color, valor, etiqueta }:
+ * el valor va primero y resaltado porque es lo que el lector busca; la
+ * etiqueta y el color ya los conoce por la leyenda. Todo entra con
+ * textContent: los nombres de clientes vienen de la base.
+ */
+function mostrarTooltip(x, y, titulo, filas){
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.className = 'viz-tooltip';
+    tooltipEl.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tooltipEl);
+  }
+
+  const cabeza = document.createElement('div');
+  cabeza.className = 'tt-titulo';
+  cabeza.textContent = titulo;
+  tooltipEl.replaceChildren(cabeza);
+
+  filas.forEach(f => {
+    const fila = document.createElement('div');
+    fila.className = 'tt-fila';
+    const clave = document.createElement('i');
+    clave.style.background = f.color;
+    const valor = document.createElement('b');
+    valor.textContent = f.valor;
+    const etiqueta = document.createElement('span');
+    etiqueta.textContent = f.etiqueta;
+    fila.append(clave, valor, etiqueta);
+    tooltipEl.appendChild(fila);
+  });
+
+  const { offsetWidth: ancho, offsetHeight: alto } = tooltipEl;
+  let left = x + 14;
+  let top = y - alto - 12;
+  if (left + ancho > window.innerWidth - 8) left = x - ancho - 14;
+  if (left < 8) left = 8;
+  if (top < 8) top = y + 18;
+  tooltipEl.style.left = `${left}px`;
+  tooltipEl.style.top = `${top}px`;
+  tooltipEl.classList.add('visible');
+}
+
+function ocultarTooltip(){
+  tooltipEl?.classList.remove('visible');
+}
+
+function estadoVacio(texto, imagen, etiqueta = 'li'){
+  const el = document.createElement(etiqueta);
+  el.className = 'vacio';
+  if (imagen) {
+    const img = document.createElement('img');
+    img.src = imagen;
+    img.alt = '';
+    img.width = 120;
+    img.height = 90;
+    el.appendChild(img);
+  }
+  el.append(texto);
+  return el;
+}
+
+// ---------- cifra principal y KPIs ----------
+
+const FORMATO_FECHA_HOY = new Intl.DateTimeFormat('es-HN', { weekday: 'long', day: 'numeric', month: 'long' });
+
+function pintarHero(s){
+  document.getElementById('dash-fecha').textContent = FORMATO_FECHA_HOY.format(new Date());
+
+  const cartera = s.cartera || { saldo_pendiente: 0, fiados_abiertos: 0 };
+  animarNumero(document.getElementById('dash-hero-valor'), cartera.saldo_pendiente, lempiras);
+  document.getElementById('dash-hero-detalle').textContent =
+    cartera.fiados_abiertos === 1 ? 'en 1 fiado abierto' : `en ${entero(cartera.fiados_abiertos)} fiados abiertos`;
+}
+
+function crearKpi({ i, etiqueta, valor, unidad, icono, pie, critico, medidor }){
   const box = document.createElement('div');
-  box.className = alerta ? 'stat-box alerta' : 'stat-box';
+  box.className = critico ? 'kpi critico' : 'kpi';
+  box.style.setProperty('--i', i);
 
-  const b = document.createElement('b');
-  b.textContent = String(valor);
+  const cabeza = document.createElement('div');
+  cabeza.className = 'kpi-cabeza';
+  const label = document.createElement('span');
+  label.className = 'kpi-label';
+  label.textContent = etiqueta;
+  const ic = iconoElemento(icono);
+  ic.className = 'kpi-icono';
+  ic.setAttribute('aria-hidden', 'true');
+  cabeza.append(label, ic);
 
-  const span = document.createElement('span');
-  span.textContent = etiqueta;
+  const cifra = document.createElement('div');
+  cifra.className = 'kpi-valor';
+  const numero = document.createElement('span');
+  cifra.appendChild(numero);
+  if (unidad) {
+    const u = document.createElement('span');
+    u.className = 'kpi-unidad';
+    u.textContent = unidad;
+    cifra.appendChild(u);
+  }
+  box.append(cabeza, cifra);
 
-  box.appendChild(b);
-  box.appendChild(span);
+  if (medidor != null) {
+    const pista = document.createElement('div');
+    pista.className = 'medidor';
+    pista.setAttribute('role', 'meter');
+    pista.setAttribute('aria-valuemin', '0');
+    pista.setAttribute('aria-valuemax', '100');
+    pista.setAttribute('aria-valuenow', String(medidor));
+    pista.setAttribute('aria-label', `${medidor}% de los fiados abiertos en mora crítica`);
+    const relleno = document.createElement('span');
+    pista.appendChild(relleno);
+    box.appendChild(pista);
+    trasPintar(() => { relleno.style.width = `${medidor}%`; });
+  }
+
+  if (pie) {
+    const p = document.createElement('div');
+    p.className = 'kpi-pie';
+    p.textContent = pie;
+    box.appendChild(p);
+  }
+
+  animarNumero(numero, valor);
   return box;
 }
 
-const COLOR_ESTADO = { pendiente: '#B08B2E', parcial: '#3A5687', pagado: '#2C6A51' };
+function pintarKpis(s){
+  const grid = document.getElementById('kpi-grid');
+  grid.replaceChildren();
+
+  const abiertos = s.cartera?.fiados_abiertos || 0;
+  const pctCritico = porcentaje(s.mora_critica_count, abiertos);
+
+  const kpis = [
+    { etiqueta: 'Clientes', valor: s.total_clientes, icono: ICONO_CLIENTES, pie: 'registrados en la cartera' },
+    { etiqueta: 'Mora promedio', valor: s.mora_promedio_dias, unidad: 'días', icono: ICONO_RELOJ, pie: 'entre los fiados vencidos' },
+    {
+      etiqueta: 'Mora crítica', valor: s.mora_critica_count, unidad: s.mora_critica_count === 1 ? 'fiado' : 'fiados',
+      icono: ICONO_ALERTA, critico: s.mora_critica_count > 0, medidor: pctCritico,
+      pie: `${pctCritico}% de los abiertos · más de ${DIAS_MORA_CRITICA} días`
+    },
+    { etiqueta: 'Tickets abiertos', valor: s.tickets_abiertos, icono: ICONO_TICKET, pie: s.tickets_abiertos ? 'requieren revisión' : 'todo en orden' },
+    { etiqueta: 'Comentarios', valor: s.total_feedback, icono: ICONO_COMENTARIO, pie: 'recibidos de los usuarios' }
+  ];
+
+  kpis.forEach((k, i) => grid.appendChild(crearKpi({ ...k, i })));
+}
+
+function pintarEsqueletoKpis(){
+  const grid = document.getElementById('kpi-grid');
+  grid.replaceChildren();
+  for (let i = 0; i < 5; i++) {
+    const kpi = document.createElement('div');
+    kpi.className = 'kpi';
+    kpi.style.setProperty('--i', i);
+    const linea = document.createElement('div');
+    linea.className = 'esqueleto';
+    linea.style.cssText = 'height:12px;width:55%;margin-bottom:16px';
+    const cifra = document.createElement('div');
+    cifra.className = 'esqueleto';
+    cifra.style.cssText = 'height:26px;width:40%';
+    kpi.append(linea, cifra);
+    grid.appendChild(kpi);
+  }
+}
+
+// ---------- grafica de movimiento mensual (lineas) ----------
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const MES_CORTO = new Intl.DateTimeFormat('es-HN', { month: 'short' });
+const MES_LARGO = new Intl.DateTimeFormat('es-HN', { month: 'long', year: 'numeric' });
+
+const SERIES_MOVIMIENTO = [
+  { clave: 'fiado', etiqueta: 'Fiado', color: 'var(--serie-fiado)', clase: 'fiado' },
+  { clave: 'abonado', etiqueta: 'Abonado', color: 'var(--serie-abono)', clase: 'abono' }
+];
+
+function svgEl(tag, attrs = {}){
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function redondear(v){ return Math.round(v * 10) / 10; }
+
+function fechaDeMes(mes){
+  const [anio, m] = mes.split('-').map(Number);
+  return new Date(anio, m - 1, 1);
+}
+
+/** Tope y paso "redondos" para el eje Y (0 / 500 / 1,000...), nunca 0 / 437 / 874. */
+function escalaLimpia(maximo){
+  if (maximo <= 0) return { tope: 1000, paso: 250 };
+  const bruto = maximo / 4;
+  const magnitud = Math.pow(10, Math.floor(Math.log10(bruto)));
+  const normal = bruto / magnitud;
+  let factor = 10;
+  if (normal <= 1) factor = 1;
+  else if (normal <= 2) factor = 2;
+  else if (normal <= 2.5) factor = 2.5;
+  else if (normal <= 5) factor = 5;
+  const paso = factor * magnitud;
+  return { tope: paso * Math.ceil(maximo / paso), paso };
+}
+
+function compacto(v){
+  if (v >= 1e6) return `${redondear(v / 1e6)}M`;
+  if (v >= 1e3) return `${redondear(v / 1e3)}K`;
+  return String(v);
+}
+
+/**
+ * Curva suave que pasa por todos los puntos sin inventar picos: la
+ * interpolacion monotona (Fritsch-Carlson) nunca sube por encima ni baja por
+ * debajo de dos meses vecinos, a diferencia de una curva Bezier ingenua.
+ */
+function curvaMonotona(puntos){
+  const n = puntos.length;
+  if (n === 0) return '';
+  if (n === 1) return `M${puntos[0][0]},${puntos[0][1]}`;
+
+  const dx = [];
+  const pendiente = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = puntos[i + 1][0] - puntos[i][0];
+    pendiente[i] = (puntos[i + 1][1] - puntos[i][1]) / dx[i];
+  }
+
+  const t = [pendiente[0]];
+  for (let i = 1; i < n - 1; i++) {
+    t[i] = pendiente[i - 1] * pendiente[i] <= 0 ? 0 : (pendiente[i - 1] + pendiente[i]) / 2;
+  }
+  t[n - 1] = pendiente[n - 2];
+
+  for (let i = 0; i < n - 1; i++) {
+    if (pendiente[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+    const a = t[i] / pendiente[i];
+    const b = t[i + 1] / pendiente[i];
+    const h = a * a + b * b;
+    if (h > 9) {
+      const s = 3 / Math.sqrt(h);
+      t[i] = s * a * pendiente[i];
+      t[i + 1] = s * b * pendiente[i];
+    }
+  }
+
+  let d = `M${puntos[0][0]},${puntos[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const c = dx[i] / 3;
+    d += ` C${redondear(puntos[i][0] + c)},${redondear(puntos[i][1] + c * t[i])}` +
+         ` ${redondear(puntos[i + 1][0] - c)},${redondear(puntos[i + 1][1] - c * t[i + 1])}` +
+         ` ${puntos[i + 1][0]},${puntos[i + 1][1]}`;
+  }
+  return d;
+}
+
+function pintarMovimiento(meses){
+  const cont = document.getElementById('chart-movimiento');
+  const tabla = document.getElementById('tabla-movimiento');
+  cont.replaceChildren();
+  tabla.replaceChildren();
+
+  if (!meses.length) {
+    cont.appendChild(estadoVacio('Todavía no hay movimiento para graficar.', null, 'div'));
+    return;
+  }
+
+  // El SVG escala con su contenedor: con un viewBox fijo de 560px, en un
+  // telefono los textos de los ejes quedarian en ~7px. Tomar el ancho real
+  // mantiene las etiquetas a su tamano de diseno.
+  const W = Math.round(Math.min(560, Math.max(300, cont.clientWidth || 560)));
+  const H = W < 420 ? 220 : 250;
+  const margen = { arriba: 16, derecha: 18, abajo: 30, izquierda: 44 };
+  const ancho = W - margen.izquierda - margen.derecha;
+  const alto = H - margen.arriba - margen.abajo;
+  const maximo = Math.max(0, ...meses.flatMap(d => [d.fiado, d.abonado]));
+  const { tope, paso } = escalaLimpia(maximo);
+  const x = i => margen.izquierda + (meses.length === 1 ? ancho / 2 : (i * ancho) / (meses.length - 1));
+  const y = v => margen.arriba + alto - (v / tope) * alto;
+  const base = y(0);
+  const nombreMes = d => capitalizar(MES_LARGO.format(fechaDeMes(d.mes)));
+
+  const totalFiado = meses.reduce((a, d) => a + d.fiado, 0);
+  const totalAbonado = meses.reduce((a, d) => a + d.abonado, 0);
+
+  const raiz = svgEl('svg', {
+    viewBox: `0 0 ${W} ${H}`, class: 'viz-svg', role: 'img',
+    'aria-label': `Movimiento de ${nombreMes(meses[0])} a ${nombreMes(meses.at(-1))}: ` +
+      `${lempiras(totalFiado)} fiados y ${lempiras(totalAbonado)} abonados.`
+  });
+
+  // Solo la serie principal (lo fiado) lleva relleno: un lavado de su color
+  // que se desvanece hacia el eje. Dos lavados encimados se mezclarian en un
+  // tono turbio que no pertenece a ninguna de las dos series.
+  const principal = SERIES_MOVIMIENTO[0];
+  const defs = svgEl('defs');
+  const degradado = svgEl('linearGradient', { id: 'grad-movimiento', x1: 0, y1: 0, x2: 0, y2: 1 });
+  [[0, 0.2], [1, 0]].forEach(([offset, opacidad]) => {
+    const stop = svgEl('stop', { offset, 'stop-opacity': opacidad });
+    stop.style.stopColor = principal.color;
+    degradado.appendChild(stop);
+  });
+  defs.appendChild(degradado);
+  raiz.appendChild(defs);
+
+  const grid = svgEl('g', { class: 'viz-grid' });
+  for (let v = 0; v <= tope + paso / 2; v += paso) {
+    const yv = redondear(y(v));
+    if (v > 0) grid.appendChild(svgEl('line', { x1: margen.izquierda, x2: W - margen.derecha, y1: yv, y2: yv }));
+    const etiqueta = svgEl('text', { x: margen.izquierda - 10, y: yv + 4, 'text-anchor': 'end' });
+    etiqueta.textContent = compacto(v);
+    grid.appendChild(etiqueta);
+  }
+  raiz.appendChild(grid);
+  raiz.appendChild(svgEl('line', { class: 'viz-eje', x1: margen.izquierda, x2: W - margen.derecha, y1: base, y2: base }));
+
+  meses.forEach((d, i) => {
+    const etiqueta = svgEl('text', { x: redondear(x(i)), y: H - 8, 'text-anchor': 'middle' });
+    etiqueta.textContent = capitalizar(MES_CORTO.format(fechaDeMes(d.mes)).replace('.', ''));
+    raiz.appendChild(etiqueta);
+  });
+
+  const puntosSerie = SERIES_MOVIMIENTO.map(s => meses.map((d, i) => [redondear(x(i)), redondear(y(d[s.clave]))]));
+
+  const ptsPrincipal = puntosSerie[0];
+  raiz.appendChild(svgEl('path', {
+    class: 'viz-relleno',
+    fill: 'url(#grad-movimiento)',
+    d: `${curvaMonotona(ptsPrincipal)} L${ptsPrincipal.at(-1)[0]},${base} L${ptsPrincipal[0][0]},${base} Z`
+  }));
+
+  SERIES_MOVIMIENTO.forEach((s, k) => {
+    // pathLength=1 permite "dibujar" la linea animando stroke-dashoffset de 1 a 0.
+    const linea = svgEl('path', { class: `viz-linea ${s.clase}`, d: curvaMonotona(puntosSerie[k]), pathLength: 1 });
+    linea.style.stroke = s.color;
+    raiz.appendChild(linea);
+  });
+
+  const cruz = svgEl('line', { class: 'viz-cruz', x1: 0, x2: 0, y1: margen.arriba, y2: base });
+  raiz.appendChild(cruz);
+
+  const puntos = [];
+  SERIES_MOVIMIENTO.forEach((s, k) => {
+    puntosSerie[k].forEach(([px, py], i) => {
+      const punto = svgEl('circle', { class: 'viz-punto', cx: px, cy: py, r: 4 });
+      punto.style.fill = s.color;
+      punto.style.animationDelay = `${0.7 + i * 0.08 + k * 0.1}s`;
+      punto.dataset.mes = String(i);
+      puntos.push(punto);
+      raiz.appendChild(punto);
+    });
+  });
+
+  // Cada mes tiene una franja invisible de todo el alto: el lector apunta a
+  // un mes, no a un punto de 8px. La cruz se engancha al mes mas cercano.
+  const franja = meses.length > 1 ? ancho / (meses.length - 1) : ancho;
+  const soltar = () => {
+    cruz.classList.remove('visible');
+    puntos.forEach(p => p.classList.remove('activo'));
+    ocultarTooltip();
+  };
+
+  meses.forEach((d, i) => {
+    const filas = SERIES_MOVIMIENTO.map(s => ({ color: s.color, valor: lempiras(d[s.clave]), etiqueta: s.etiqueta }));
+    const zona = svgEl('rect', {
+      class: 'viz-zona', x: redondear(x(i) - franja / 2), y: margen.arriba, width: redondear(franja), height: alto,
+      tabindex: 0, 'aria-label': `${nombreMes(d)}: ${filas.map(f => `${f.etiqueta} ${f.valor}`).join(', ')}`
+    });
+    const activar = (cx, cy) => {
+      cruz.setAttribute('x1', redondear(x(i)));
+      cruz.setAttribute('x2', redondear(x(i)));
+      cruz.classList.add('visible');
+      puntos.forEach(p => p.classList.toggle('activo', Number(p.dataset.mes) === i));
+      mostrarTooltip(cx, cy, nombreMes(d), filas);
+    };
+    zona.addEventListener('pointermove', e => activar(e.clientX, e.clientY));
+    zona.addEventListener('pointerdown', e => activar(e.clientX, e.clientY));
+    zona.addEventListener('focus', () => {
+      const caja = zona.getBoundingClientRect();
+      activar(caja.left + caja.width / 2, caja.top + 30);
+    });
+    zona.addEventListener('pointerleave', soltar);
+    zona.addEventListener('blur', soltar);
+    raiz.appendChild(zona);
+
+    const tr = document.createElement('tr');
+    [nombreMes(d), lempiras(d.fiado), lempiras(d.abonado)].forEach(texto => {
+      const td = document.createElement('td');
+      td.textContent = texto;
+      tr.appendChild(td);
+    });
+    tabla.appendChild(tr);
+  });
+
+  cont.appendChild(raiz);
+}
+
+// ---------- fiados por estado (barra apilada 100%) ----------
+
+const ESTADOS = [
+  { clave: 'pendiente', etiqueta: 'Pendiente', color: 'var(--estado-pendiente)' },
+  { clave: 'parcial', etiqueta: 'Parcial', color: 'var(--estado-parcial)' },
+  { clave: 'pagado', etiqueta: 'Pagado', color: 'var(--estado-pagado)' }
+];
+let modoEstados = 'n';
+let ultimoPorEstado = [];
+
+function crearSegmento(estado){
+  const seg = document.createElement('div');
+  seg.className = 'seg';
+  seg.dataset.estado = estado.clave;
+  seg.tabIndex = 0;
+  seg.style.background = estado.color;
+
+  // El tooltip lee los datos del propio segmento, asi refleja el modo
+  // (cantidad o monto) que este activo en ese momento.
+  const tip = (cx, cy) => mostrarTooltip(cx, cy, estado.etiqueta, [
+    { color: estado.color, valor: seg.dataset.valor, etiqueta: seg.dataset.pct }
+  ]);
+  seg.addEventListener('pointermove', e => tip(e.clientX, e.clientY));
+  seg.addEventListener('focus', () => {
+    const caja = seg.getBoundingClientRect();
+    tip(caja.left + caja.width / 2, caja.top);
+  });
+  seg.addEventListener('pointerleave', ocultarTooltip);
+  seg.addEventListener('blur', ocultarTooltip);
+  return seg;
+}
 
 function pintarChartFiados(porEstado){
-  const cont = document.getElementById('chart-fiados');
-  cont.innerHTML = '';
-  const max = Math.max(1, ...porEstado.map(f => f.n));
+  ultimoPorEstado = porEstado;
+  const porMonto = modoEstados === 'total';
+  const formato = porMonto ? lempiras : entero;
 
-  porEstado.forEach(f => {
-    const col = document.createElement('div');
-    col.className = 'chart-bar-col';
+  const datos = ESTADOS.map(e => {
+    const fila = porEstado.find(f => f.estado === e.clave);
+    return { ...e, valor: fila ? Number(porMonto ? fila.total : fila.n) : 0 };
+  });
+  const total = datos.reduce((a, d) => a + d.valor, 0);
+  const visibles = datos.filter(d => d.valor > 0);
 
-    const valor = document.createElement('div');
-    valor.className = 'chart-bar-value';
-    valor.textContent = f.n;
+  animarNumero(document.getElementById('estado-total-valor'), total, formato);
+  document.getElementById('estado-total-label').textContent =
+    porMonto ? 'fiados en total' : (total === 1 ? 'fiado registrado' : 'fiados registrados');
+  document.getElementById('estado-sub').textContent =
+    porMonto ? 'Monto original de los fiados en cada estado' : 'Cantidad de fiados en cada estado';
 
-    const bar = document.createElement('div');
-    bar.className = 'chart-bar';
-    bar.style.height = '0%';
-    bar.style.background = COLOR_ESTADO[f.estado] || '#5D6C7B';
+  const barra = document.getElementById('chart-fiados');
+  barra.classList.toggle('vacia', total === 0);
+  barra.setAttribute('aria-label', total === 0
+    ? 'Sin fiados registrados'
+    : 'Fiados por estado: ' + visibles.map(d => `${d.etiqueta} ${formato(d.valor)} (${porcentaje(d.valor, total)}%)`).join(', '));
 
-    const label = document.createElement('div');
-    label.className = 'chart-bar-label';
-    label.textContent = f.estado;
+  datos.forEach(d => {
+    let seg = barra.querySelector(`[data-estado="${d.clave}"]`);
+    if (!seg) {
+      seg = crearSegmento(d);
+      barra.appendChild(seg);
+    }
+    seg.dataset.valor = formato(d.valor);
+    seg.dataset.pct = `${porcentaje(d.valor, total)}% del total`;
+    seg.hidden = d.valor === 0;
+    seg.setAttribute('aria-label', `${d.etiqueta}: ${formato(d.valor)}`);
+    seg.classList.toggle('primero', d === visibles[0]);
+    seg.classList.toggle('ultimo', d === visibles.at(-1));
+    // flex-grow en porcentaje: los segmentos siempre suman el ancho completo
+    // y, al cambiar de modo, cada uno se estira o encoge con transicion.
+    const crecimiento = total > 0 ? (d.valor / total) * 100 : 0;
+    trasPintar(() => { seg.style.flexGrow = String(crecimiento); });
+  });
 
-    col.appendChild(valor);
-    col.appendChild(bar);
-    col.appendChild(label);
-    cont.appendChild(col);
-
-    requestAnimationFrame(() => { bar.style.height = `${Math.max(6, (f.n / max) * 100)}%`; });
+  const lista = document.getElementById('estado-lista');
+  lista.replaceChildren();
+  datos.forEach((d, i) => {
+    const li = document.createElement('li');
+    li.style.setProperty('--i', i);
+    const muestra = document.createElement('i');
+    muestra.style.background = d.color;
+    const nombre = document.createElement('span');
+    nombre.className = 'nombre';
+    nombre.textContent = d.etiqueta;
+    const valor = document.createElement('span');
+    valor.className = 'valor';
+    valor.textContent = formato(d.valor);
+    const pct = document.createElement('span');
+    pct.className = 'pct';
+    pct.textContent = `${porcentaje(d.valor, total)}%`;
+    li.append(muestra, nombre, valor, pct);
+    lista.appendChild(li);
   });
 }
 
-function pintarTopDeudores(lista){
+document.getElementById('estado-modo').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-modo]');
+  if (!btn || btn.dataset.modo === modoEstados) return;
+
+  modoEstados = btn.dataset.modo;
+  document.querySelectorAll('#estado-modo button[data-modo]').forEach(b => {
+    const activo = b === btn;
+    b.classList.toggle('activo', activo);
+    b.setAttribute('aria-pressed', String(activo));
+  });
+  moverPastilla(document.getElementById('estado-modo'));
+  pintarChartFiados(ultimoPorEstado);
+});
+
+// ---------- top deudores (barras horizontales) ----------
+
+function iniciales(nombre){
+  return String(nombre).trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+}
+
+function pintarTopDeudores(lista, saldoTotal){
   const cont = document.getElementById('top-deudores');
-  cont.innerHTML = '';
+  cont.replaceChildren();
+
   if (!lista.length) {
-    const vacio = document.createElement('div');
-    vacio.className = 'vacio';
-    vacio.textContent = 'Ningún cliente tiene deuda pendiente. ¡Excelente!';
-    cont.appendChild(vacio);
+    cont.appendChild(estadoVacio('Ningún cliente tiene deuda pendiente. ¡Excelente!', IMG_TODO_AL_DIA));
     return;
   }
+
+  const maximo = Math.max(...lista.map(d => d.deuda));
+
   lista.forEach((d, i) => {
+    const li = document.createElement('li');
+    li.style.setProperty('--i', i);
+
+    const avatar = document.createElement('span');
+    avatar.className = 'avatar';
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.textContent = iniciales(d.nombre);
+
+    const cuerpo = document.createElement('div');
     const fila = document.createElement('div');
-    fila.className = 'deudor-row';
-
-    const izq = document.createElement('div');
-    izq.className = 'deudor-nombre';
-    const rank = document.createElement('span');
-    rank.className = 'deudor-rank';
-    rank.textContent = String(i + 1);
+    fila.className = 'ranking-fila';
     const nombre = document.createElement('span');
-    nombre.textContent = d.nombre;
-    izq.appendChild(rank);
-    izq.appendChild(nombre);
+    nombre.className = 'ranking-nombre';
+    nombre.textContent = `${i + 1}. ${d.nombre}`;
+    const valor = document.createElement('span');
+    valor.className = 'ranking-valor';
+    valor.textContent = lempiras(d.deuda);
+    fila.append(nombre, valor);
 
-    const monto = document.createElement('b');
-    monto.textContent = `L. ${Number(d.deuda).toFixed(2)}`;
+    const pct = saldoTotal > 0 ? porcentaje(d.deuda, saldoTotal) : null;
+    const detalle = pct == null ? 'deuda pendiente' : `${pct}% de la cartera pendiente`;
+    const barra = document.createElement('div');
+    barra.className = 'ranking-barra';
+    barra.tabIndex = 0;
+    barra.setAttribute('aria-label', `${d.nombre}: ${lempiras(d.deuda)}, ${detalle}`);
 
-    fila.appendChild(izq);
-    fila.appendChild(monto);
-    cont.appendChild(fila);
+    // Toda la fila es zona de hover, no solo la barra de 10px.
+    const tip = (cx, cy) => mostrarTooltip(cx, cy, d.nombre, [
+      { color: 'var(--serie-fiado)', valor: lempiras(d.deuda), etiqueta: detalle }
+    ]);
+    li.addEventListener('pointermove', e => tip(e.clientX, e.clientY));
+    li.addEventListener('pointerleave', ocultarTooltip);
+    barra.addEventListener('focus', () => {
+      const caja = barra.getBoundingClientRect();
+      tip(caja.right, caja.top);
+    });
+    barra.addEventListener('blur', ocultarTooltip);
+
+    cuerpo.append(fila, barra);
+    li.append(avatar, cuerpo);
+    cont.appendChild(li);
+
+    trasPintar(() => { barra.style.width = `${Math.max(2, (d.deuda / maximo) * 100)}%`; });
   });
+}
+
+// ---------- actividad reciente (linea de tiempo) ----------
+
+const FORMATO_RELATIVO = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
+const UNIDADES_TIEMPO = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+
+function haceCuanto(fecha){
+  const segundos = (new Date(fecha).getTime() - Date.now()) / 1000;
+  for (const [unidad, tamano] of UNIDADES_TIEMPO) {
+    if (Math.abs(segundos) >= tamano) return FORMATO_RELATIVO.format(Math.round(segundos / tamano), unidad);
+  }
+  return 'hace un momento';
 }
 
 function pintarActividad(items){
   const cont = document.getElementById('actividad-reciente');
-  cont.innerHTML = '';
+  cont.replaceChildren();
+  cont.classList.toggle('sin-datos', !items.length);
+
   if (!items.length) {
-    const vacio = document.createElement('div');
-    vacio.className = 'vacio';
-    vacio.textContent = 'Sin actividad registrada todavía.';
-    cont.appendChild(vacio);
+    cont.appendChild(estadoVacio('Sin actividad registrada todavía.'));
     return;
   }
-  items.forEach(a => {
-    const fila = document.createElement('div');
-    fila.className = 'actividad-item';
 
-    const izq = document.createElement('span');
-    const tipo = document.createElement('span');
-    tipo.className = `actividad-tipo ${a.tipo}`;
-    tipo.textContent = a.tipo === 'fiado' ? 'nuevo fiado' : 'abono';
-    izq.appendChild(tipo);
-    izq.append(` ${a.cliente} · ${a.detalle}`);
+  items.forEach((a, i) => {
+    const esPago = a.tipo === 'pago';
+    const li = document.createElement('li');
+    li.style.setProperty('--i', i);
 
-    const der = document.createElement('b');
-    der.textContent = `L. ${Number(a.monto).toFixed(2)}`;
+    const icono = iconoElemento(esPago ? ICONO_MONEDA : ICONO_CARRITO);
+    icono.className = `tl-icono ${esPago ? 'pago' : 'fiado'}`;
+    icono.setAttribute('aria-hidden', 'true');
 
-    fila.appendChild(izq);
-    fila.appendChild(der);
-    cont.appendChild(fila);
+    const texto = document.createElement('div');
+    texto.className = 'tl-texto';
+    const cliente = document.createElement('b');
+    cliente.textContent = a.cliente;
+    const detalle = document.createElement('span');
+    detalle.textContent = `${esPago ? 'Abono' : 'Nuevo fiado'} · ${a.detalle} · ${haceCuanto(a.fecha)}`;
+    texto.append(cliente, detalle);
+
+    const monto = document.createElement('span');
+    monto.className = 'tl-monto';
+    monto.textContent = `${esPago ? '+ ' : ''}${lempiras(a.monto)}`;
+
+    li.append(icono, texto, monto);
+    cont.appendChild(li);
   });
 }
 
@@ -515,7 +1139,7 @@ function avisarMoraCriticaSiCorresponde(cantidad){
   if (cantidad <= 0 || !('Notification' in window)) return;
 
   const mostrar = () => new Notification('Fiados Ferrefacil', {
-    body: `Tenés ${cantidad} fiado(s) con más de 15 días de mora.`,
+    body: `Tenés ${cantidad} fiado(s) con más de ${DIAS_MORA_CRITICA} días de mora.`,
     icon: '/icons/icon-192.png'
   });
 
@@ -526,23 +1150,30 @@ function avisarMoraCriticaSiCorresponde(cantidad){
   }
 }
 
+let dashboardCargado = false;
+
 async function cargarDashboard(){
+  const tab = document.getElementById('tab-dashboard');
+  // Al recargar se conserva lo ya dibujado, atenuado, en vez de parpadear con
+  // un esqueleto: las cifras no saltan de lugar mientras llega la respuesta.
+  if (dashboardCargado) tab.classList.add('recargando');
+  else pintarEsqueletoKpis();
+
   try {
     const s = await api('/admin/stats');
-    const grid = document.getElementById('stats-grid');
-    grid.innerHTML = '';
-
-    grid.appendChild(crearStatBox(s.total_clientes, 'clientes'));
-    grid.appendChild(crearStatBox(s.tickets_abiertos, 'tickets abiertos'));
-    grid.appendChild(crearStatBox(s.total_feedback, 'comentarios recibidos'));
-    grid.appendChild(crearStatBox(s.mora_promedio_dias, 'días de mora (promedio)'));
-    grid.appendChild(crearStatBox(s.mora_critica_count, 'fiados en mora crítica', s.mora_critica_count > 0));
-
+    pintarHero(s);
+    pintarKpis(s);
+    pintarMovimiento(s.movimiento_mensual || []);
     pintarChartFiados(s.fiados_por_estado);
-    pintarTopDeudores(s.top_deudores);
+    pintarTopDeudores(s.top_deudores, s.cartera?.saldo_pendiente);
     pintarActividad(s.actividad_reciente);
+    dashboardCargado = true;
     avisarMoraCriticaSiCorresponde(s.mora_critica_count);
-  } catch (e) { /* si no es admin, la ruta ya no se ve */ }
+  } catch (e) {
+    /* si no es admin, la ruta ya no se ve */
+  } finally {
+    tab.classList.remove('recargando');
+  }
 }
 
 async function cargarTickets(){
@@ -554,7 +1185,7 @@ async function cargarTickets(){
       <td>${escapeHtml(t.ruta || '—')}</td>
       <td><span class="badge ${t.estado}">${t.estado.replace('_',' ')}</span></td>
       <td>${t.estado !== 'resuelto' ? `<button class="secondary small" data-resolver="${t.id}">Marcar resuelto</button>` : ''}</td>
-    </tr>`).join('') || '<tr><td colspan="5"><div class="vacio">Sin tickets registrados. ¡Buena señal!</div></td></tr>';
+    </tr>`).join('') || `<tr><td colspan="5"><div class="vacio"><img src="${IMG_TODO_AL_DIA}" alt="" width="120" height="90">Sin tickets registrados. ¡Buena señal!</div></td></tr>`;
 }
 
 document.getElementById('tabla-tickets').addEventListener('click', async e => {
