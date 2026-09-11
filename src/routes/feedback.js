@@ -5,11 +5,10 @@ const { requireAuth } = require('../auth');
 const router = express.Router();
 router.use(requireAuth);
 
-// Cualquier usuario logueado (vendedor, demo, admin) puede dejar feedback.
 router.post('/', async (req, res, next) => {
   try {
     const { mensaje } = req.body || {};
-    if (!mensaje || !mensaje.trim()) {
+    if (!mensaje?.trim()) {
       return res.status(400).json({ error: 'El mensaje es requerido' });
     }
     const fila = await db.one(
