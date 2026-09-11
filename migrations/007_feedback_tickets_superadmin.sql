@@ -1,11 +1,16 @@
 -- =============================================================
--- 007 · Feedback de usuarios, tickets de errores y super admin
+-- 007 · Feedback de usuarios, tickets de errores y rol super_admin
 -- =============================================================
 -- Agrega:
 --   - tabla feedback: comentarios que dejan los usuarios logueados
 --   - tabla tickets_error: cada error real del servidor se guarda aqui solo
 --   - rol 'super_admin', con mas permisos que 'admin'
---   - usuario super admin para revision del proyecto
+--
+-- El usuario super admin NO se crea aqui a proposito: un hash de contrasena
+-- fijo en un archivo SQL versionado es, en la practica, tan expuesto como
+-- la contrasena en texto plano (cualquiera puede probar contrasenas comunes
+-- contra ese hash). Se crea aparte con src/crear-superadmin.js, que genera
+-- el hash en el momento a partir de variables de entorno nunca commiteadas.
 -- =============================================================
 
 alter table usuarios drop constraint if exists usuarios_rol_check;
@@ -48,21 +53,6 @@ create policy "tickets_error_sin_acceso_publico"
   on tickets_error for all
   to anon, authenticated
   using (false);
-
--- Usuario super admin para revision del proyecto.
--- Contraseña de demostracion (123) intencionalmente simple para revision
--- academica. NO usar este patron en un sistema con datos reales de produccion.
-insert into usuarios (email, password_hash, rol, nombre)
-values (
-  'jova889@gmail.com',
-  '$2b$10$IA97fi05EKHbxCyR7N1rqu/n8BGTpoVClmN6hIV01WUdWUZiBFoeG',
-  'super_admin',
-  'joaleman'
-)
-on conflict (email) do update set
-  password_hash = excluded.password_hash,
-  rol = excluded.rol,
-  nombre = excluded.nombre;
 
 insert into schema_migrations (version, nombre)
 values ('007', 'feedback_tickets_superadmin')
