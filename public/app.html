@@ -8,6 +8,9 @@
 <title>Fiados · Ferrefacil</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#F4F6F7; --paper:#FFFFFF;
@@ -20,26 +23,64 @@
   --warn:#7E621B; --warn-soft:#F2ECDC;
   --danger:#9E3A31; --danger-soft:#F4E3E1;
   --info:#3A5687; --info-soft:#E6EBF5;
-  --radius:12px; --shadow:0 6px 20px rgba(24,32,40,.10);
+  --radius:14px; --radius-sm:9px;
+  --shadow:0 1px 2px rgba(24,32,40,.06), 0 8px 24px rgba(24,32,40,.08);
+  --shadow-lg:0 10px 34px rgba(24,32,40,.16);
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink)}
-header{background:var(--ink);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-header h1{font-size:18px;margin:0}
+body{margin:0;font-family:'Inter',Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+header{
+  background:linear-gradient(135deg,var(--ink) 0%,var(--ink-soft) 100%);color:#fff;
+  padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  box-shadow:0 2px 12px rgba(0,0,0,.18);position:sticky;top:0;z-index:20;
+}
+header h1{font-size:17px;margin:0;font-weight:700;display:flex;align-items:center;gap:9px;letter-spacing:-.2px}
 header .acciones{display:flex;gap:8px;align-items:center}
-header .rol-badge{background:rgba(255,255,255,.14);color:var(--on-dark);font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;text-transform:uppercase}
-main{max-width:960px;margin:0 auto;padding:24px}
-.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
-input,select,button,textarea{font-size:15px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);width:100%;box-sizing:border-box;font-family:inherit}
-button{background:var(--accent);color:#fff;border:none;cursor:pointer;width:auto;font-weight:600}
-button:hover{background:var(--accent-dark)}
-button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
-button.small{padding:6px 10px;font-size:13px}
+header .rol-badge{
+  background:rgba(255,255,255,.14);color:var(--on-dark);font-size:11px;padding:4px 10px;border-radius:20px;
+  font-weight:700;text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;gap:5px;
+}
+header .rol-badge svg{width:12px;height:12px}
+main{max-width:980px;margin:0 auto;padding:26px 20px 60px}
+.card{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:22px;margin-bottom:18px;
+  animation:aparecer .35s ease both;
+}
+@keyframes aparecer{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card h3{
+  margin:0 0 16px;font-size:15.5px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--ink);
+}
+.card h3 svg{width:19px;height:19px;color:var(--accent);flex-shrink:0}
+input,select,button,textarea{
+  font-size:14.5px;padding:10px 13px;border-radius:var(--radius-sm);border:1.5px solid var(--line);
+  width:100%;box-sizing:border-box;font-family:inherit;transition:border-color .15s,box-shadow .15s;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent-tint);box-shadow:0 0 0 3px rgba(127,179,196,.25)}
+button{
+  background:var(--accent);color:#fff;border:1.5px solid var(--accent);cursor:pointer;width:auto;font-weight:600;
+  transition:background .15s,transform .1s,box-shadow .15s;display:inline-flex;align-items:center;gap:7px;
+}
+button:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+button:active{transform:scale(.98)}
+button svg{width:15px;height:15px}
+button.secondary{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+button.secondary:hover{background:var(--bg);border-color:var(--muted)}
+button.small{padding:7px 11px;font-size:13px}
+button.danger{background:var(--danger);border-color:var(--danger)}
+button.danger:hover{background:#7f2f27;border-color:#7f2f27}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .row > *{flex:1;min-width:140px}
-table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:14px}
-.badge{padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{
+  text-align:left;padding:9px 10px;border-bottom:2px solid var(--line);font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;
+}
+td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line)}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:var(--bg)}
+tbody tr:last-child td{border-bottom:none}
+.badge{padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;display:inline-block}
 .badge.pendiente{background:var(--warn-soft);color:var(--warn)}
 .badge.parcial{background:var(--info-soft);color:var(--info)}
 .badge.pagado{background:var(--ok-soft);color:var(--ok)}
@@ -47,57 +88,105 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
 .badge.en_revision{background:var(--info-soft);color:var(--info)}
 .badge.resuelto{background:var(--ok-soft);color:var(--ok)}
 .mora{color:var(--danger);font-weight:700}
-#login-screen{position:fixed;inset:0;background:var(--ink);display:flex;align-items:center;justify-content:center}
-.login-card{background:#fff;padding:30px;border-radius:var(--radius);width:320px}
+#login-screen{position:fixed;inset:0;background:linear-gradient(160deg,var(--ink) 0%,#0F1519 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:#fff;padding:34px 30px;border-radius:18px;width:340px;box-shadow:var(--shadow-lg);animation:aparecer .4s ease both}
+.login-card h2{display:flex;align-items:center;gap:9px;margin:0 0 4px;font-size:20px}
 .hidden{display:none !important}
-.error{background:var(--danger-soft);color:var(--danger);padding:10px;border-radius:8px;font-size:13px;margin-bottom:10px}
-.offline-banner{background:var(--warn-soft);color:var(--warn);padding:8px 24px;font-size:13px;text-align:center}
+.error{background:var(--danger-soft);color:var(--danger);padding:11px 13px;border-radius:var(--radius-sm);font-size:13.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.offline-banner{background:var(--warn-soft);color:var(--warn);padding:9px 24px;font-size:13px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
 .separador{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--muted);font-size:12px}
 .separador::before,.separador::after{content:"";flex:1;height:1px;background:var(--line)}
 .btn-google{
   display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
-  padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;
-  color:var(--ink);text-decoration:none;font-size:15px;font-weight:600;
+  padding:11px 14px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:#fff;
+  color:var(--ink);text-decoration:none;font-size:14.5px;font-weight:600;
   transition:background .15s,box-shadow .15s;
 }
 .btn-google:hover{background:var(--bg);box-shadow:0 2px 8px rgba(24,32,40,.10)}
 
 /* ---- panel de administracion ---- */
 .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
-.tabs button{background:#fff;color:var(--muted);border:1px solid var(--line);width:auto}
+.tabs button{background:#fff;color:var(--muted);border:1.5px solid var(--line);width:auto}
 .tabs button.activo{background:var(--accent);color:#fff;border-color:var(--accent)}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
-.stat-box{background:var(--accent-soft);border-radius:10px;padding:14px;text-align:center}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat-box{
+  background:var(--accent-soft);border-radius:var(--radius-sm);padding:16px;text-align:center;
+  transition:transform .15s;border:1px solid transparent;
+}
+.stat-box:hover{transform:translateY(-2px)}
 .stat-box.alerta{background:var(--danger-soft)}
-.stat-box b{display:block;font-size:24px;color:var(--accent)}
+.stat-box b{display:block;font-size:26px;color:var(--accent);font-weight:800;letter-spacing:-.5px}
 .stat-box.alerta b{color:var(--danger)}
-.stat-box span{font-size:12px;color:var(--muted)}
-.diag-box{margin-top:6px;font-size:13px;color:var(--muted)}
-.chart-bars{display:flex;align-items:flex-end;gap:16px;height:140px;padding:10px 6px}
+.stat-box span{font-size:11.5px;color:var(--muted);font-weight:600}
+.diag-box{margin-top:6px;font-size:13px;color:var(--muted);background:var(--bg);padding:8px 10px;border-radius:8px}
+.chart-bars{display:flex;align-items:flex-end;gap:16px;height:150px;padding:14px 6px 4px}
 .chart-bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
-.chart-bar{width:100%;max-width:56px;border-radius:6px 6px 0 0;transition:height .3s ease}
-.chart-bar-label{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
-.chart-bar-value{font-size:13px;font-weight:700;margin-bottom:4px}
-.deudor-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.chart-bar{width:100%;max-width:56px;border-radius:8px 8px 3px 3px;transition:height .5s cubic-bezier(.2,.8,.3,1)}
+.chart-bar-label{font-size:11.5px;color:var(--muted);margin-top:7px;text-align:center;font-weight:600;text-transform:capitalize}
+.chart-bar-value{font-size:14px;font-weight:800;margin-bottom:5px}
+.deudor-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
 .deudor-row:last-child{border-bottom:none}
-.actividad-item{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.deudor-nombre{display:flex;align-items:center;gap:9px}
+.deudor-rank{
+  width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;flex-shrink:0;
+}
+.actividad-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 .actividad-item:last-child{border-bottom:none}
-.actividad-tipo{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600}
+.actividad-tipo{font-size:10.5px;padding:3px 8px;border-radius:10px;font-weight:700;text-transform:uppercase;letter-spacing:.02em}
 .actividad-tipo.fiado{background:var(--warn-soft);color:var(--warn)}
 .actividad-tipo.pago{background:var(--ok-soft);color:var(--ok)}
+.vacio{color:var(--muted);font-size:13.5px;text-align:center;padding:20px 0}
+
+/* ---- modales ---- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(15,21,25,.55);display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:20px;animation:fondoIn .18s ease both;backdrop-filter:blur(2px);
+}
+@keyframes fondoIn{from{opacity:0}to{opacity:1}}
+.modal-box{
+  background:#fff;border-radius:16px;padding:26px;width:380px;max-width:100%;box-shadow:var(--shadow-lg);
+  animation:modalIn .22s cubic-bezier(.2,.9,.3,1.1) both;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.modal-box.modal-box-sm{width:320px}
+.modal-box h3{margin:0 0 16px;font-size:17px;font-weight:700}
+.modal-box p{margin:0 0 18px;color:var(--muted);font-size:14.5px}
+.modal-label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.02em}
+.modal-label input,.modal-label textarea{margin-top:7px;text-transform:none;font-weight:400}
+.modal-label textarea{min-height:80px;resize:vertical}
+.modal-acciones{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
+.modal-acciones button{width:auto}
+
+/* ---- toasts ---- */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:10px;max-width:320px}
+.toast{
+  background:var(--ink);color:#fff;padding:13px 16px;border-radius:10px;font-size:13.5px;font-weight:600;
+  box-shadow:var(--shadow-lg);opacity:0;transform:translateX(20px);transition:opacity .25s,transform .25s;
+  display:flex;align-items:center;gap:9px;
+}
+.toast.visible{opacity:1;transform:none}
+.toast.toast-ok{background:var(--ok)}
+.toast.toast-error{background:var(--danger)}
+.toast svg{width:16px;height:16px;flex-shrink:0}
+
+@media(max-width:600px){
+  .toast-container{left:16px;right:16px;max-width:none}
+  main{padding:18px 14px 50px}
+}
 </style>
 </head>
 <body>
 
 <div id="login-screen">
   <div class="login-card">
-    <h2>Fiados · Ferrefacil</h2>
-    <p style="color:var(--muted);font-size:14px">Iniciá sesión para continuar</p>
+    <h2>🔧 Fiados · Ferrefacil</h2>
+    <p style="color:var(--muted);font-size:14px;margin:0 0 18px">Iniciá sesión para continuar</p>
     <div id="login-error" class="error hidden"></div>
     <form id="login-form">
       <div class="row"><input id="login-email" type="email" placeholder="correo" aria-label="Correo electrónico" autocomplete="username" required></div>
       <div class="row"><input id="login-password" type="password" placeholder="contraseña" aria-label="Contraseña" autocomplete="current-password" required></div>
-      <button type="submit">Entrar</button>
+      <button type="submit" style="width:100%;justify-content:center">Entrar</button>
     </form>
 
     <div id="google-bloque" class="hidden">
@@ -118,13 +207,25 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
 </div>
 
 <div id="app" class="hidden">
-  <div id="offline-banner" class="offline-banner hidden">Estás sin conexión. Mostrando los últimos datos guardados.</div>
+  <div id="offline-banner" class="offline-banner hidden">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v5M12 16h.01"/></svg>
+    Estás sin conexión. Mostrando los últimos datos guardados.
+  </div>
   <header>
     <h1>🔧 Fiados · Ferrefacil</h1>
     <div class="acciones">
-      <span id="rol-badge" class="rol-badge hidden"></span>
-      <button class="secondary small" id="btn-feedback">Dejar comentario</button>
-      <button class="secondary small" id="btn-logout">Salir</button>
+      <span id="rol-badge" class="rol-badge hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z"/></svg>
+        <span id="rol-badge-texto"></span>
+      </span>
+      <button class="secondary small" id="btn-feedback">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        Comentar
+      </button>
+      <button class="secondary small" id="btn-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Salir
+      </button>
     </div>
   </header>
   <main>
@@ -132,29 +233,38 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
     <!-- Panel de administracion: solo visible para admin/super_admin -->
     <div id="panel-admin" class="hidden">
       <div class="tabs">
-        <button type="button" class="activo" data-tab="dashboard">Dashboard</button>
-        <button type="button" data-tab="tickets">Tickets de errores</button>
-        <button type="button" data-tab="feedback">Feedback</button>
+        <button type="button" class="activo" data-tab="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></svg>
+          Dashboard
+        </button>
+        <button type="button" data-tab="tickets">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
+          Tickets de errores
+        </button>
+        <button type="button" data-tab="feedback">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          Feedback
+        </button>
       </div>
 
       <div id="tab-dashboard">
         <div class="card">
-          <h3>Resumen del negocio</h3>
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></svg>Resumen del negocio</h3>
           <div id="stats-grid" class="stats-grid"></div>
           <div id="chart-fiados" class="chart-bars"></div>
         </div>
         <div class="card">
-          <h3>Top 5 clientes con más deuda</h3>
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>Top 5 clientes con más deuda</h3>
           <div id="top-deudores"></div>
         </div>
         <div class="card">
-          <h3>Actividad reciente</h3>
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>Actividad reciente</h3>
           <div id="actividad-reciente"></div>
         </div>
       </div>
 
       <div id="tab-tickets" class="card hidden">
-        <h3>Tickets de errores</h3>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>Tickets de errores</h3>
         <table>
           <thead><tr><th>Fecha</th><th>Mensaje</th><th>Ruta</th><th>Estado</th><th></th></tr></thead>
           <tbody id="tabla-tickets"></tbody>
@@ -162,7 +272,7 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
       </div>
 
       <div id="tab-feedback" class="card hidden">
-        <h3>Feedback recibido</h3>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Feedback recibido</h3>
         <table>
           <thead><tr><th>Fecha</th><th>Usuario</th><th>Mensaje</th></tr></thead>
           <tbody id="tabla-feedback"></tbody>
@@ -171,16 +281,19 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
     </div>
 
     <div class="card">
-      <h3>Nuevo cliente</h3>
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Nuevo cliente</h3>
       <div class="row">
         <input id="c-nombre" placeholder="Nombre del cliente" aria-label="Nombre del cliente">
         <input id="c-telefono" placeholder="Teléfono" aria-label="Teléfono del cliente">
       </div>
-      <button id="btn-crear-cliente">Agregar cliente</button>
+      <button id="btn-crear-cliente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Agregar cliente
+      </button>
     </div>
 
     <div class="card">
-      <h3>Registrar fiado</h3>
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 010-4h12v4M4 6v12a2 2 0 002 2h14v-4M18 12a2 2 0 000 4h4v-4z"/></svg>Registrar fiado</h3>
       <div class="row">
         <select id="f-cliente" aria-label="Cliente"></select>
         <input id="f-desc" placeholder="Descripción (ej. cemento 2 sacos)" aria-label="Descripción del fiado">
@@ -189,11 +302,14 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
         <input id="f-monto" type="number" placeholder="Monto (L.)" aria-label="Monto del fiado en lempiras">
         <input id="f-vence" type="date" aria-label="Fecha de vencimiento del fiado">
       </div>
-      <button id="btn-crear-fiado">Registrar fiado</button>
+      <button id="btn-crear-fiado">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Registrar fiado
+      </button>
     </div>
 
     <div class="card">
-      <h3>Fiados</h3>
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17V7h4a3 3 0 010 6H9M9 12h4"/></svg>Fiados</h3>
       <div class="row">
         <input id="filtro-buscar" placeholder="Buscar por cliente o descripción" aria-label="Buscar fiados">
         <select id="filtro-estado" aria-label="Filtrar por estado">
@@ -202,16 +318,3 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:
           <option value="parcial">Parcial</option>
           <option value="pagado">Pagado</option>
         </select>
-        <button type="button" class="secondary" id="btn-limpiar-filtros">Limpiar</button>
-      </div>
-      <table>
-        <thead><tr><th>Cliente</th><th>Descripción</th><th>Saldo</th><th>Mora</th><th>Estado</th><th></th></tr></thead>
-        <tbody id="tabla-fiados"></tbody>
-      </table>
-    </div>
-  </main>
-</div>
-
-<script src="/app.js"></script>
-</body>
-</html>
