@@ -363,6 +363,83 @@ tbody tr:last-child td{border-bottom:none}
 .tl-texto span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tl-monto{font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
 
+/* ---- recomendaciones ---- */
+.card,.tabs{scroll-margin-top:84px}
+@keyframes resaltar{0%{box-shadow:0 0 0 0 rgba(127,179,196,.7)}100%{box-shadow:0 0 0 16px rgba(127,179,196,0)}}
+.card.resaltada{animation:resaltar 1.1s ease-out 2}
+.recos-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.reco{
+  position:relative;overflow:hidden;display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:start;
+  padding:12px 12px 12px 14px;border-radius:12px;background:#FAFBFC;border:1px solid var(--line);
+  animation:deslizar .45s var(--ease) both;animation-delay:calc(var(--i,0) * 90ms + .1s);
+  transition:transform .25s var(--ease),box-shadow .25s,border-color .25s;
+}
+.reco::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--reco-color)}
+.reco:hover{transform:translateX(3px);box-shadow:0 6px 16px rgba(24,32,40,.07);border-color:#D2DAE0}
+.reco-icono{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--reco-fondo);color:var(--reco-color);transition:transform .35s var(--ease)}
+.reco:hover .reco-icono{transform:rotate(-8deg) scale(1.08)}
+.reco-icono svg{width:18px;height:18px}
+.reco-nivel{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--reco-color);margin-bottom:2px}
+.reco b{display:block;font-size:14px;font-weight:700;color:var(--ink);line-height:1.35}
+.reco p{margin:3px 0 0;font-size:13px;color:var(--muted);line-height:1.5}
+.reco button{align-self:center;white-space:nowrap}
+.reco.critico{--reco-color:var(--danger);--reco-fondo:var(--danger-soft)}
+.reco.atencion{--reco-color:var(--warn);--reco-fondo:var(--warn-soft)}
+.reco.info{--reco-color:var(--info);--reco-fondo:var(--info-soft)}
+.reco.bien{--reco-color:var(--ok);--reco-fondo:var(--ok-soft)}
+
+/* ---- consejos del rubro (carrusel) ---- */
+.consejos{position:relative;overflow:hidden;display:flex;flex-direction:column}
+.consejos-cabeza{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;margin:-22px -22px 18px;padding:18px 22px 12px;
+  background:linear-gradient(120deg,#FFFFFF 0%,#F4F9FB 60%,#E3EEF2 100%);border-bottom:1px solid var(--line);
+}
+.consejos-cabeza h3{margin:4px 0 0}
+.consejos-img{width:118px;height:auto;flex-shrink:0;animation:flotar 6s ease-in-out infinite}
+.consejo{display:grid;flex:1;touch-action:pan-y}
+.consejo-slide{
+  grid-area:1/1;display:grid;grid-template-columns:52px minmax(0,1fr);gap:14px;align-content:start;
+  opacity:0;visibility:hidden;transform:translateX(20px);
+  transition:opacity .4s ease,transform .5s var(--ease),visibility 0s linear .5s;
+}
+.consejo-slide.antes{transform:translateX(-20px)}
+.consejo-slide.activo{opacity:1;visibility:visible;transform:none;transition:opacity .45s ease .05s,transform .5s var(--ease) .05s,visibility 0s}
+.consejo-icono{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent)}
+.consejo-slide.activo .consejo-icono{animation:pop .5s var(--ease) .12s backwards}
+.consejo-icono svg{width:24px;height:24px}
+.consejo-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--ink-soft);border:1px solid var(--line)}
+.chip.temporada{background:var(--info-soft);color:var(--info);border-color:transparent}
+.consejo-slide h4{margin:0 0 6px;font-size:15.5px;font-weight:700;letter-spacing:-.2px;line-height:1.35}
+.consejo-slide p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink-soft)}
+.consejo-dato{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--accent-soft)}
+.consejo-dato b{font-size:20px;font-weight:800;color:var(--accent-dark);letter-spacing:-.3px;white-space:nowrap}
+.consejo-dato span{font-size:12.5px;color:var(--muted)}
+.carrusel-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap}
+.puntos{display:flex;align-items:center;flex-wrap:wrap}
+.puntos button{width:24px;height:24px;padding:0;background:transparent;border:none;justify-content:center}
+.puntos button::before{content:"";width:7px;height:7px;border-radius:4px;background:#C9D2D8;transition:width .3s var(--ease),background .3s}
+.puntos button:hover{background:transparent;transform:none;box-shadow:none}
+.puntos button:hover::before{background:var(--accent-tint)}
+.puntos button.activo::before{width:20px;background:var(--accent)}
+.carrusel-controles{display:flex;align-items:center;gap:6px}
+.contador{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-right:4px}
+.icono-btn{width:32px;height:32px;padding:0;justify-content:center;border-radius:50%;background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.icono-btn:hover{background:var(--bg);border-color:var(--muted);box-shadow:0 4px 10px rgba(24,32,40,.08)}
+.icono-btn span{display:flex}
+.icono-btn svg{width:14px;height:14px}
+.carrusel-progreso{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--accent-soft)}
+.carrusel-progreso span{display:block;height:100%;background:var(--accent-tint);transform-origin:left;transform:scaleX(0)}
+@keyframes llenar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.carrusel-progreso span.corriendo{animation:llenar 9s linear forwards}
+.consejos:hover .carrusel-progreso span,.consejos:focus-within .carrusel-progreso span,.consejos.pausado .carrusel-progreso span{animation-play-state:paused}
+.consejos.sin-auto #consejo-pausa,.consejos.sin-auto .carrusel-progreso{display:none}
+@media(max-width:600px){
+  .reco{grid-template-columns:38px minmax(0,1fr)}
+  .reco button{grid-column:2;justify-self:start}
+  .consejos-img{width:84px}
+}
+
 .diag-box{margin-top:6px;font-size:13px;color:var(--muted);background:var(--bg);padding:8px 10px;border-radius:8px}
 .vacio{color:var(--muted);font-size:13.5px;text-align:center;padding:18px 0}
 .vacio img{display:block;width:120px;height:auto;margin:0 auto 8px;animation:flotar 5s ease-in-out infinite}
@@ -516,6 +593,46 @@ tbody tr:last-child td{border-bottom:none}
         </section>
 
         <div id="kpi-grid" class="kpi-grid"></div>
+
+        <div class="dash-grid parejo">
+          <div class="card">
+            <div class="viz-cabeza">
+              <div>
+                <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg>Recomendaciones para hoy</h3>
+                <p class="viz-sub">Generadas a partir de los datos de tu cartera</p>
+              </div>
+            </div>
+            <ul id="recomendaciones" class="recos-lista"></ul>
+          </div>
+
+          <div class="card consejos" id="tarjeta-consejos">
+            <div class="consejos-cabeza">
+              <div>
+                <span class="dash-eyebrow">Guía de construcción</span>
+                <h3>Consejos del rubro</h3>
+                <p class="viz-sub">Información práctica para atender a tus clientes de obra</p>
+              </div>
+              <img class="consejos-img" src="/img/consejos-obra.svg" alt="" width="160" height="110">
+            </div>
+            <div id="consejo" class="consejo" aria-live="off"></div>
+            <div class="carrusel-pie">
+              <div id="consejo-puntos" class="puntos"></div>
+              <div class="carrusel-controles">
+                <span id="consejo-contador" class="contador"></span>
+                <button type="button" class="icono-btn" id="consejo-anterior" aria-label="Consejo anterior">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="icono-btn" id="consejo-pausa" aria-label="Pausar consejos" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+                </button>
+                <button type="button" class="icono-btn" id="consejo-siguiente" aria-label="Consejo siguiente">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="carrusel-progreso" aria-hidden="true"><span id="consejo-progreso"></span></div>
+          </div>
+        </div>
 
         <div class="dash-grid">
           <div class="card">

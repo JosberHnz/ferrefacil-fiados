@@ -1,0 +1,66 @@
+{
+  "consejos": [
+    {
+      "id": "temporada-lluvias",
+      "categoria": "temporada",
+      "titulo": "Prepará el inventario para la temporada de lluvias",
+      "texto": "En el centro, sur y occidente del país las lluvias fuertes suelen ir de mayo a octubre, y en la costa norte se extienden hasta febrero. Conviene reforzar antes las existencias de impermeabilizantes, láminas, canaletas, tubo PVC y plástico para cubrir obra: cuando empieza a llover, la demanda sube de golpe.",
+      "dato": { "valor": "May – Oct", "etiqueta": "lluvias fuertes en la mayor parte del país" },
+      "meses": [4, 5, 6, 7, 8, 9, 10]
+    },
+    {
+      "id": "cemento-almacenaje",
+      "categoria": "materiales",
+      "titulo": "Cómo almacenar el cemento para que no se endurezca",
+      "texto": "Guardá los sacos bajo techo, en un lugar seco y sobre tarimas, sin tocar el piso ni las paredes. No apiles más de unos 10 sacos de alto y despachá primero los que llevan más tiempo: la humedad forma grumos y le quita resistencia al cemento.",
+      "dato": { "valor": "10 sacos", "etiqueta": "de alto como máximo por estiba" }
+    },
+    {
+      "id": "bloques-m2",
+      "categoria": "calculos",
+      "titulo": "Cuántos bloques lleva un metro cuadrado de pared",
+      "texto": "Con bloque de 40 × 20 cm de medida nominal (que ya incluye la junta de mortero) salen 12.5 unidades por metro cuadrado. Para cotizar, multiplicá el área de la pared por 12.5, descontá puertas y ventanas y sumá un 5 % por quiebres y cortes.",
+      "dato": { "valor": "12.5", "etiqueta": "bloques por m² de pared" }
+    },
+    {
+      "id": "concreto-proporcion",
+      "categoria": "calculos",
+      "titulo": "La proporción de referencia del concreto",
+      "texto": "Para elementos sencillos como pisos, aceras, soleras y castillos se usa como referencia la mezcla 1 : 2 : 3 de cemento, arena y grava, medida por volumen. El agua debe ser la justa para trabajar la mezcla: agregar de más la debilita. En losas, vigas y columnas la dosificación la define el ingeniero de la obra.",
+      "dato": { "valor": "1 : 2 : 3", "etiqueta": "cemento · arena · grava" }
+    },
+    {
+      "id": "curado-concreto",
+      "categoria": "materiales",
+      "titulo": "El concreto recién colado necesita curado",
+      "texto": "Después de colarlo, el concreto debe mantenerse húmedo al menos 7 días, regándolo o cubriéndolo con plástico o costales mojados. Si se seca demasiado rápido, sobre todo con sol y viento, se agrieta y no alcanza la resistencia esperada. Es un buen momento para ofrecer plástico negro o curador de concreto.",
+      "dato": { "valor": "7 días", "etiqueta": "de curado húmedo como mínimo" }
+    },
+    {
+      "id": "pintura-rendimiento",
+      "categoria": "calculos",
+      "titulo": "Cuánta pintura cotizar para una pared",
+      "texto": "Un galón de pintura de agua rinde aproximadamente entre 30 y 35 m² por mano en superficie lisa; en repello rústico o paredes porosas rinde menos. Para cotizar calculá dos manos, y recomendá sellador en paredes nuevas: evita que el repello absorba la pintura.",
+      "dato": { "valor": "30 – 35 m²", "etiqueta": "por galón, en cada mano (aprox.)" }
+    },
+    {
+      "id": "varilla-almacenaje",
+      "categoria": "materiales",
+      "titulo": "Varilla almacenada sin corrosión",
+      "texto": "Guardá la varilla bajo techo, sobre polines y sin contacto con el suelo, ordenada por diámetro. Una capa leve de óxido superficial no es un problema, pero si el óxido se desprende en escamas la varilla pierde sección y hay que revisarla antes de venderla para uso estructural."
+    },
+    {
+      "id": "equipo-proteccion",
+      "categoria": "seguridad",
+      "titulo": "Ofrecé equipo de protección con cada venta de obra",
+      "texto": "Casco, guantes, lentes y mascarilla son una venta complementaria natural para quien compra cemento, esmeriladoras o químicos. Además de subir el ticket de venta, cuida a tus clientes: el polvo de cemento irrita la piel, los ojos y las vías respiratorias."
+    },
+    {
+      "id": "credito-contratistas",
+      "categoria": "negocio",
+      "titulo": "Fiado a contratistas: cobrá al ritmo de sus pagos",
+      "texto": "Muchos maestros de obra y contratistas reciben su pago por quincena o por avance de obra. Pactar las fechas de abono con ese calendario y pedir un anticipo en pedidos grandes reduce la mora sin perder al cliente.",
+      "dato": { "valor": "Quincena", "etiqueta": "fecha natural para pactar los abonos" }
+    }
+  ]
+}

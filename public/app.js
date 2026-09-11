@@ -45,6 +45,17 @@ const ICONO_COMENTARIO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 const ICONO_CARRITO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>';
 const ICONO_MONEDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>';
 
+const ICONO_BOMBILLA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg>';
+const ICONO_CHECK_CIRCULO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 11-5.9-9.1"/><path d="M22 4L12 14l-3-3"/></svg>';
+const ICONO_TENDENCIA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>';
+const ICONO_CAJA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></svg>';
+const ICONO_LLUVIA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 16.6A5 5 0 0018 7h-1.3A8 8 0 104 15.3"/><path d="M8 19v2M8 13v2M16 19v2M16 13v2M12 21v2M12 15v2"/></svg>';
+const ICONO_REGLA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.3 8.7L8.7 21.3a1 1 0 01-1.4 0l-4.6-4.6a1 1 0 010-1.4L15.3 2.7a1 1 0 011.4 0l4.6 4.6a1 1 0 010 1.4z"/><path d="M7.5 10.5l2 2M10.5 7.5l2 2M13.5 4.5l2 2M4.5 13.5l2 2"/></svg>';
+const ICONO_ESCUDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>';
+const ICONO_MALETIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>';
+const ICONO_PAUSA = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+const ICONO_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3l14 9-14 9V3z"/></svg>';
+
 const IMG_TODO_AL_DIA = '/img/vacio-todo-al-dia.svg';
 
 // El icono (constante fija, sin datos externos) y el mensaje (variable) se
@@ -1135,6 +1146,357 @@ function pintarActividad(items){
   });
 }
 
+// ---------- recomendaciones generadas con los datos de la cartera ----------
+
+const NIVELES_RECO = {
+  critico: { etiqueta: 'Urgente', icono: ICONO_ALERTA, orden: 0 },
+  atencion: { etiqueta: 'Atención', icono: ICONO_TENDENCIA, orden: 1 },
+  info: { etiqueta: 'Sugerencia', icono: ICONO_BOMBILLA, orden: 2 },
+  bien: { etiqueta: 'Bien', icono: ICONO_CHECK_CIRCULO, orden: 3 }
+};
+const MES_NOMBRE = new Intl.DateTimeFormat('es-HN', { month: 'long' });
+const MAX_RECOMENDACIONES = 4;
+
+function desplazarA(el){
+  el.scrollIntoView({ behavior: MOVIMIENTO_REDUCIDO ? 'auto' : 'smooth', block: 'start' });
+}
+
+/** Lleva a la tabla de fiados y la resalta un momento para que se note a donde se fue. */
+function irAFiados(){
+  const tarjeta = document.getElementById('tabla-fiados').closest('.card');
+  desplazarA(tarjeta);
+  tarjeta.classList.remove('resaltada');
+  tarjeta.getBoundingClientRect();
+  tarjeta.classList.add('resaltada');
+  // animationend burbujea: las filas de la tabla tambien animan, asi que se
+  // filtra por el evento de la propia tarjeta.
+  const alTerminar = e => {
+    if (e.target !== tarjeta) return;
+    tarjeta.classList.remove('resaltada');
+    tarjeta.removeEventListener('animationend', alTerminar);
+  };
+  tarjeta.addEventListener('animationend', alTerminar);
+}
+
+function irATickets(){
+  document.querySelector('.tabs button[data-tab="tickets"]')?.click();
+  desplazarA(document.getElementById('tabs-admin'));
+}
+
+/**
+ * Traduce las cifras del dashboard en acciones concretas, de la mas urgente
+ * a la menos. Son reglas simples y explicables a proposito: el dueño tiene
+ * que poder entender por que la app le sugiere algo.
+ */
+function generarRecomendaciones(s){
+  const recos = [];
+  const cartera = s.cartera || { saldo_pendiente: 0, fiados_abiertos: 0 };
+  const critica = s.mora_critica_count || 0;
+  const totalFiados = (s.fiados_por_estado || []).reduce((a, f) => a + f.n, 0);
+
+  if (critica > 0) {
+    recos.push({
+      nivel: 'critico',
+      titulo: critica === 1 ? 'Cobrá el fiado en mora crítica' : `Cobrá los ${critica} fiados en mora crítica`,
+      detalle: `${critica === 1 ? 'Lleva' : 'Llevan'} más de ${DIAS_MORA_CRITICA} días vencidos ` +
+        `(${porcentaje(critica, cartera.fiados_abiertos)}% de los fiados abiertos). ` +
+        'Un cobro que se deja correr es cada vez más difícil de recuperar.',
+      accion: { texto: 'Ver fiados', fn: irAFiados }
+    });
+  }
+
+  const deudores = s.top_deudores || [];
+  const mayor = deudores[0];
+  const concentracion = mayor && cartera.saldo_pendiente > 0 ? porcentaje(mayor.deuda, cartera.saldo_pendiente) : 0;
+  if (deudores.length > 1 && concentracion >= 20) {
+    recos.push({
+      nivel: 'atencion',
+      icono: ICONO_CLIENTES,
+      titulo: `${mayor.nombre} concentra el ${concentracion}% del saldo pendiente`,
+      detalle: `Debe ${lempiras(mayor.deuda)}. Pactar un plan de abonos con fechas fijas reduce el riesgo si ese cliente se atrasa.`
+    });
+  }
+
+  const mesActual = (s.movimiento_mensual || []).at(-1);
+  if (mesActual && (mesActual.fiado > 0 || mesActual.abonado > 0)) {
+    const nombreMes = MES_NOMBRE.format(fechaDeMes(mesActual.mes));
+    const neto = mesActual.abonado - mesActual.fiado;
+    if (neto < 0) {
+      recos.push({
+        nivel: 'atencion',
+        icono: ICONO_TENDENCIA,
+        titulo: `En ${nombreMes} se está fiando más de lo que se cobra`,
+        detalle: `Van ${lempiras(mesActual.fiado)} fiados y ${lempiras(mesActual.abonado)} abonados: ` +
+          `la cartera creció ${lempiras(-neto)} en lo que va del mes.`
+      });
+    } else if (neto > 0) {
+      recos.push({
+        nivel: 'bien',
+        icono: ICONO_TENDENCIA,
+        titulo: `En ${nombreMes} se cobra más de lo que se fía`,
+        detalle: `Van ${lempiras(mesActual.abonado)} abonados contra ${lempiras(mesActual.fiado)} fiados: ` +
+          `la cartera bajó ${lempiras(neto)} en lo que va del mes.`
+      });
+    }
+  }
+
+  if ((s.mora_promedio_dias || 0) > 30) {
+    recos.push({
+      nivel: 'atencion',
+      icono: ICONO_RELOJ,
+      titulo: 'La mora promedio supera un mes',
+      detalle: `Los fiados vencidos llevan en promedio ${entero(s.mora_promedio_dias)} días. ` +
+        'Acortar los plazos o pedir un anticipo en compras grandes ayuda a bajarla.'
+    });
+  }
+
+  if (s.tickets_abiertos > 0) {
+    recos.push({
+      nivel: 'info',
+      icono: ICONO_TICKET,
+      titulo: s.tickets_abiertos === 1 ? 'Hay 1 ticket de error sin resolver' : `Hay ${s.tickets_abiertos} tickets de error sin resolver`,
+      detalle: 'Revisarlos pronto evita que un fallo de la aplicación interrumpa las ventas al crédito.',
+      accion: { texto: 'Ver tickets', fn: irATickets }
+    });
+  }
+
+  const hayAlertas = recos.some(r => r.nivel === 'critico' || r.nivel === 'atencion');
+  if (totalFiados === 0) {
+    recos.push({
+      nivel: 'info',
+      titulo: 'Todavía no hay fiados registrados',
+      detalle: 'Cuando registres fiados, acá vas a ver qué conviene atender primero.'
+    });
+  } else if (!hayAlertas) {
+    const abiertos = cartera.fiados_abiertos;
+    recos.push({
+      nivel: 'bien',
+      titulo: abiertos ? 'La cartera está bajo control' : 'No hay fiados pendientes de cobro',
+      detalle: abiertos
+        ? `No hay mora crítica entre ${abiertos === 1 ? 'el fiado abierto' : `los ${entero(abiertos)} fiados abiertos`}. ` +
+          'Recordar el vencimiento a los clientes unos días antes es la mejor forma de seguir así.'
+        : 'Todos los fiados registrados están pagados.'
+    });
+  }
+
+  return recos
+    .sort((a, b) => NIVELES_RECO[a.nivel].orden - NIVELES_RECO[b.nivel].orden)
+    .slice(0, MAX_RECOMENDACIONES);
+}
+
+function pintarRecomendaciones(s){
+  const lista = document.getElementById('recomendaciones');
+  lista.replaceChildren();
+
+  generarRecomendaciones(s).forEach((r, i) => {
+    const nivel = NIVELES_RECO[r.nivel];
+    const li = document.createElement('li');
+    li.className = `reco ${r.nivel}`;
+    li.style.setProperty('--i', i);
+
+    const icono = iconoElemento(r.icono || nivel.icono);
+    icono.className = 'reco-icono';
+    icono.setAttribute('aria-hidden', 'true');
+
+    const texto = document.createElement('div');
+    const etiqueta = document.createElement('span');
+    etiqueta.className = 'reco-nivel';
+    etiqueta.textContent = nivel.etiqueta;
+    const titulo = document.createElement('b');
+    titulo.textContent = r.titulo;
+    const detalle = document.createElement('p');
+    detalle.textContent = r.detalle;
+    texto.append(etiqueta, titulo, detalle);
+
+    li.append(icono, texto);
+
+    if (r.accion) {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'secondary small';
+      boton.textContent = r.accion.texto;
+      boton.addEventListener('click', r.accion.fn);
+      li.appendChild(boton);
+    }
+
+    lista.appendChild(li);
+  });
+}
+
+// ---------- consejos del rubro (carrusel) ----------
+
+// Las claves tienen que coincidir con las de public/contenido/consejos.json
+// (el test de api.test.js valida el archivo contra esta misma lista).
+const CATEGORIAS_CONSEJO = {
+  materiales: { etiqueta: 'Materiales', icono: ICONO_CAJA },
+  temporada: { etiqueta: 'Temporada', icono: ICONO_LLUVIA },
+  calculos: { etiqueta: 'Cálculos', icono: ICONO_REGLA },
+  seguridad: { etiqueta: 'Seguridad', icono: ICONO_ESCUDO },
+  negocio: { etiqueta: 'Negocio', icono: ICONO_MALETIN }
+};
+
+const carrusel = { consejos: [], actual: 0, cargado: false };
+
+async function cargarConsejos(){
+  if (carrusel.cargado) return;
+  carrusel.cargado = true;
+
+  const tarjeta = document.getElementById('tarjeta-consejos');
+  const cont = document.getElementById('consejo');
+  // Sin autoavance para quien pidio menos movimiento: navega con los botones.
+  tarjeta.classList.toggle('sin-auto', MOVIMIENTO_REDUCIDO);
+
+  try {
+    const res = await fetch('/contenido/consejos.json', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('No se pudieron cargar los consejos');
+    const { consejos } = await res.json();
+    carrusel.consejos = consejos.filter(c => CATEGORIAS_CONSEJO[c.categoria]);
+  } catch {
+    carrusel.cargado = false; // se reintenta la proxima vez que se abra el dashboard
+    cont.replaceChildren(estadoVacio('No se pudieron cargar los consejos.', null, 'div'));
+    return;
+  }
+
+  if (!carrusel.consejos.length) {
+    cont.replaceChildren(estadoVacio('Todavía no hay consejos publicados.', null, 'div'));
+    return;
+  }
+
+  // Si hay un consejo de temporada para este mes, el carrusel arranca ahi.
+  const mes = new Date().getMonth() + 1;
+  pintarConsejos(mes);
+  const deTemporada = carrusel.consejos.findIndex(c => c.meses?.includes(mes));
+  irAConsejo(Math.max(0, deTemporada), { manual: false });
+}
+
+function pintarConsejos(mes){
+  const cont = document.getElementById('consejo');
+  const puntos = document.getElementById('consejo-puntos');
+  cont.replaceChildren();
+  puntos.replaceChildren();
+  const total = carrusel.consejos.length;
+
+  carrusel.consejos.forEach((c, i) => {
+    const categoria = CATEGORIAS_CONSEJO[c.categoria];
+
+    const slide = document.createElement('article');
+    slide.className = 'consejo-slide';
+    slide.setAttribute('aria-roledescription', 'consejo');
+    slide.setAttribute('aria-label', `${i + 1} de ${total}`);
+
+    const icono = iconoElemento(categoria.icono);
+    icono.className = 'consejo-icono';
+    icono.setAttribute('aria-hidden', 'true');
+
+    const cuerpo = document.createElement('div');
+    const chips = document.createElement('div');
+    chips.className = 'consejo-chips';
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = categoria.etiqueta;
+    chips.appendChild(chip);
+    if (c.meses?.includes(mes)) {
+      const temporada = document.createElement('span');
+      temporada.className = 'chip temporada';
+      temporada.textContent = 'Para este mes';
+      chips.appendChild(temporada);
+    }
+
+    const titulo = document.createElement('h4');
+    titulo.textContent = c.titulo;
+    const texto = document.createElement('p');
+    texto.textContent = c.texto;
+    cuerpo.append(chips, titulo, texto);
+
+    if (c.dato) {
+      const dato = document.createElement('div');
+      dato.className = 'consejo-dato';
+      const valor = document.createElement('b');
+      valor.textContent = c.dato.valor;
+      const etiqueta = document.createElement('span');
+      etiqueta.textContent = c.dato.etiqueta;
+      dato.append(valor, etiqueta);
+      cuerpo.appendChild(dato);
+    }
+
+    slide.append(icono, cuerpo);
+    cont.appendChild(slide);
+
+    const punto = document.createElement('button');
+    punto.type = 'button';
+    punto.setAttribute('aria-label', `Ver consejo ${i + 1}: ${c.titulo}`);
+    punto.addEventListener('click', () => irAConsejo(i, { manual: true }));
+    puntos.appendChild(punto);
+  });
+}
+
+function irAConsejo(indice, { manual }){
+  const total = carrusel.consejos.length;
+  if (!total) return;
+  carrusel.actual = (indice + total) % total;
+
+  document.querySelectorAll('#consejo .consejo-slide').forEach((slide, i) => {
+    slide.classList.toggle('activo', i === carrusel.actual);
+    // Los anteriores esperan a la izquierda y los siguientes a la derecha:
+    // asi cada consejo entra desde el lado hacia el que se navega.
+    slide.classList.toggle('antes', i < carrusel.actual);
+  });
+  document.querySelectorAll('#consejo-puntos button').forEach((punto, i) => {
+    punto.classList.toggle('activo', i === carrusel.actual);
+    punto.setAttribute('aria-current', String(i === carrusel.actual));
+  });
+  document.getElementById('consejo-contador').textContent = `${carrusel.actual + 1} / ${total}`;
+
+  // Solo se anuncia al lector de pantalla cuando la persona navega: un
+  // anuncio cada 9 segundos por el autoavance seria puro ruido.
+  document.getElementById('consejo').setAttribute('aria-live', manual ? 'polite' : 'off');
+  reiniciarProgreso();
+}
+
+/**
+ * La barra de progreso ES el temporizador: al terminar su animacion avanza
+ * el consejo. Asi pausarla (hover, foco o boton) detiene el carrusel sin
+ * llevar un setInterval sincronizado a mano.
+ */
+function reiniciarProgreso(){
+  if (MOVIMIENTO_REDUCIDO) return;
+  const barra = document.getElementById('consejo-progreso');
+  barra.classList.remove('corriendo');
+  barra.getBoundingClientRect();
+  barra.classList.add('corriendo');
+}
+
+document.getElementById('consejo-progreso').addEventListener('animationend', () =>
+  irAConsejo(carrusel.actual + 1, { manual: false }));
+document.getElementById('consejo-anterior').addEventListener('click', () =>
+  irAConsejo(carrusel.actual - 1, { manual: true }));
+document.getElementById('consejo-siguiente').addEventListener('click', () =>
+  irAConsejo(carrusel.actual + 1, { manual: true }));
+
+document.getElementById('consejo-pausa').addEventListener('click', e => {
+  const boton = e.currentTarget;
+  const pausado = document.getElementById('tarjeta-consejos').classList.toggle('pausado');
+  boton.setAttribute('aria-pressed', String(pausado));
+  boton.setAttribute('aria-label', pausado ? 'Reanudar consejos' : 'Pausar consejos');
+  boton.replaceChildren(iconoElemento(pausado ? ICONO_PLAY : ICONO_PAUSA));
+});
+
+document.getElementById('tarjeta-consejos').addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') irAConsejo(carrusel.actual - 1, { manual: true });
+  if (e.key === 'ArrowRight') irAConsejo(carrusel.actual + 1, { manual: true });
+});
+
+// Deslizar con el dedo en el telefono.
+let inicioDeslizar = null;
+const zonaConsejo = document.getElementById('consejo');
+zonaConsejo.addEventListener('pointerdown', e => { inicioDeslizar = e.clientX; });
+zonaConsejo.addEventListener('pointerup', e => {
+  if (inicioDeslizar == null) return;
+  const distancia = e.clientX - inicioDeslizar;
+  inicioDeslizar = null;
+  if (Math.abs(distancia) > 40) irAConsejo(carrusel.actual + (distancia < 0 ? 1 : -1), { manual: true });
+});
+
 function avisarMoraCriticaSiCorresponde(cantidad){
   if (cantidad <= 0 || !('Notification' in window)) return;
 
@@ -1163,6 +1525,8 @@ async function cargarDashboard(){
     const s = await api('/admin/stats');
     pintarHero(s);
     pintarKpis(s);
+    pintarRecomendaciones(s);
+    cargarConsejos();
     pintarMovimiento(s.movimiento_mensual || []);
     pintarChartFiados(s.fiados_por_estado);
     pintarTopDeudores(s.top_deudores, s.cartera?.saldo_pendiente);
