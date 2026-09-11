@@ -154,6 +154,21 @@ describe('enrutado de paginas', () => {
     expect(res.text).toContain('id="login-form"');
   });
 
+  // app.html ya se guardo truncado dos veces: sin el <script> la pagina se ve
+  // bien pero no hace nada (el login recarga la pagina y Google nunca aparece).
+  test('/app carga app.js y trae todo lo que app.js busca al arrancar', async () => {
+    const res = await request(app).get('/app');
+    expect(res.text).toContain('<script src="/app.js"></script>');
+    expect(res.text).toMatch(/<\/html>\s*$/);
+
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const js = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8');
+    const ids = [...js.matchAll(/getElementById\('([\w-]+)'\)\.addEventListener/g)].map(m => m[1]);
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) expect(res.text).toContain(`id="${id}"`);
+  });
+
   test('la landing enlaza al login en /app', async () => {
     const res = await request(app).get('/');
     expect(res.text).toContain('href="/app"');
