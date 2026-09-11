@@ -1,10 +1,11 @@
-const CACHE_NAME = 'fiados-v15';
+const CACHE_NAME = 'fiados-v16';
 // '/' es la landing; '/app.html' es el shell de la aplicacion. Se precachea
 // el .html y no la URL limpia '/app': si una entrada de addAll fallara, la
 // instalacion entera del service worker se abortaria.
 const ESTATICOS = [
   '/', '/index.html', '/app.html', '/app.js', '/landing.js',
-  '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'
+  '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png',
+  '/img/dashboard-hero.svg', '/img/login-ferreteria.svg', '/img/vacio-todo-al-dia.svg'
 ];
 
 self.addEventListener('install', event => {

@@ -63,7 +63,7 @@ router.get('/feedback', async (req, res, next) => {
 // una vez, en vez de disparar 5 peticiones separadas al abrir la pestana.
 router.get('/stats', async (req, res, next) => {
   try {
-    const [clientes, fiados, tickets, feedback, topDeudores, pendientes, actividad] = await Promise.all([
+    const [clientes, fiados, tickets, feedback, topDeudores, pendientes, actividad, cartera, movimiento] = await Promise.all([
       db.one('select count(*)::int as n from clientes'),
 
       db.all(`select estado, count(*)::int as n, coalesce(sum(monto),0)::float as total
@@ -113,6 +113,37 @@ router.get('/stats', async (req, res, next) => {
         ) t
         order by fecha desc
         limit 5
+      `),
+
+      // Saldo pendiente de TODA la cartera (el top 5 solo cubre a los cinco
+      // mayores deudores). Es la cifra con la que abre el dashboard.
+      db.one(`
+        select count(*)::int as fiados_abiertos,
+               coalesce(sum(f.monto - coalesce((select sum(p.monto) from pagos p where p.fiado_id = f.id), 0)), 0)::float
+                 as saldo_pendiente
+          from fiados f
+         where f.estado <> 'pagado'
+      `),
+
+      // Cuanto se fio y cuanto se abono en cada uno de los ultimos 6 meses.
+      // Usa la fecha del negocio (fecha) y no creado_en, que es cuando se
+      // capturo el registro. generate_series hace que los meses sin
+      // movimiento salgan en cero en vez de desaparecer de la grafica.
+      db.all(`
+        with meses as (
+          select generate_series(
+                   date_trunc('month', current_date) - interval '5 months',
+                   date_trunc('month', current_date),
+                   interval '1 month'
+                 )::date as mes
+        )
+        select to_char(m.mes, 'YYYY-MM') as mes,
+               coalesce((select sum(f.monto) from fiados f
+                          where f.fecha >= m.mes and f.fecha < m.mes + interval '1 month'), 0)::float as fiado,
+               coalesce((select sum(p.monto) from pagos p
+                          where p.fecha >= m.mes and p.fecha < m.mes + interval '1 month'), 0)::float as abonado
+          from meses m
+         order by m.mes
       `)
     ]);
 
@@ -130,7 +161,9 @@ router.get('/stats', async (req, res, next) => {
       top_deudores: topDeudores,
       mora_promedio_dias: moraPromedio,
       mora_critica_count: moraCritica,
-      actividad_reciente: actividad
+      actividad_reciente: actividad,
+      cartera,
+      movimiento_mensual: movimiento
     });
   } catch (e) {
     next(e);

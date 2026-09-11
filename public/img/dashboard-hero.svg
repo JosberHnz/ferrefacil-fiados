@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Libreta de fiados con herramientas y monedas">
+  <defs>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7FB3C4" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#7FB3C4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="papel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EDF3F6"/>
+    </linearGradient>
+    <linearGradient id="tapa" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A6A82"/>
+      <stop offset="1" stop-color="#143C4C"/>
+    </linearGradient>
+    <linearGradient id="oro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6CD72"/>
+      <stop offset="1" stop-color="#D2952A"/>
+    </linearGradient>
+    <linearGradient id="acero" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9AA7B2"/>
+      <stop offset="1" stop-color="#5D6C7B"/>
+    </linearGradient>
+    <mask id="boca">
+      <rect x="-20" y="-40" width="160" height="80" fill="#fff"/>
+      <rect x="96" y="-7" width="30" height="14" fill="#000"/>
+      <circle cx="96" cy="0" r="7" fill="#000"/>
+    </mask>
+  </defs>
+  <style>
+    .flota{animation:flota 5s ease-in-out infinite}
+    .flota-lenta{animation:flota 7s ease-in-out -2.5s infinite}
+    .barra{transform-box:fill-box;transform-origin:50% 100%;animation:crece 1.2s cubic-bezier(.2,.8,.3,1) both}
+    .b2{animation-delay:.15s}.b3{animation-delay:.3s}.b4{animation-delay:.45s}
+    .chispa{transform-box:fill-box;transform-origin:center;animation:chispa 2.6s ease-in-out infinite}
+    .c2{animation-delay:-1.3s}
+    .check{stroke-dasharray:30;stroke-dashoffset:30;animation:traza .6s ease-out 1s forwards}
+    @keyframes flota{50%{transform:translateY(-6px)}}
+    @keyframes crece{from{transform:scaleY(0)}}
+    @keyframes chispa{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+    @keyframes traza{to{stroke-dashoffset:0}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}.check{stroke-dashoffset:0}}
+  </style>
+
+  <circle cx="190" cy="98" r="96" fill="url(#halo)"/>
+  <circle cx="290" cy="30" r="13" fill="#E7EFF2"/>
+  <circle cx="36" cy="40" r="9" fill="#E7EFF2"/>
+  <ellipse cx="176" cy="188" rx="124" ry="7" fill="#182028" opacity=".08"/>
+
+  <!-- libreta de fiados con su grafica -->
+  <g class="flota-lenta">
+    <g transform="rotate(-5 180 106)">
+      <rect x="116" y="34" width="128" height="148" rx="13" fill="url(#tapa)"/>
+      <rect x="124" y="40" width="114" height="136" rx="9" fill="url(#papel)"/>
+      <rect x="158" y="27" width="46" height="16" rx="6" fill="#182028"/>
+      <circle cx="181" cy="35" r="3" fill="#7FB3C4"/>
+      <rect x="138" y="56" width="62" height="7" rx="3.5" fill="#182028" opacity=".8"/>
+      <rect x="138" y="69" width="38" height="5" rx="2.5" fill="#5D6C7B" opacity=".4"/>
+      <line x1="138" y1="152" x2="224" y2="152" stroke="#DDE3E8" stroke-width="2" stroke-linecap="round"/>
+      <rect class="barra" x="142" y="122" width="12" height="30" rx="3" fill="#9EC3D0"/>
+      <rect class="barra b2" x="161" y="104" width="12" height="48" rx="3" fill="#1C7CB5"/>
+      <rect class="barra b3" x="180" y="114" width="12" height="38" rx="3" fill="#9EC3D0"/>
+      <rect class="barra b4" x="199" y="90" width="12" height="62" rx="3" fill="#E07A2E"/>
+      <rect x="138" y="162" width="48" height="5" rx="2.5" fill="#5D6C7B" opacity=".3"/>
+    </g>
+  </g>
+
+  <!-- llave -->
+  <g transform="translate(112 152) rotate(-140)">
+    <g class="flota-lenta">
+      <g mask="url(#boca)" fill="url(#acero)">
+        <rect x="0" y="-6.5" width="86" height="13" rx="6.5"/>
+        <circle cx="96" cy="0" r="20"/>
+      </g>
+      <circle cx="10" cy="0" r="3.2" fill="#F4F6F7"/>
+    </g>
+  </g>
+
+  <!-- martillo -->
+  <g transform="translate(58 178) rotate(-58)">
+    <g class="flota">
+      <rect x="0" y="-5.5" width="98" height="11" rx="5.5" fill="#B7834F"/>
+      <rect x="0" y="-5.5" width="30" height="11" rx="5.5" fill="#24303B"/>
+      <rect x="84" y="-19" width="24" height="38" rx="5" fill="#24303B"/>
+      <rect x="84" y="-19" width="24" height="9" rx="4" fill="#3E4F5E"/>
+    </g>
+  </g>
+
+  <!-- monedas -->
+  <g class="flota">
+    <g transform="translate(274 146)">
+      <ellipse cx="0" cy="29" rx="26" ry="8.5" fill="#A86F14"/>
+      <rect x="-26" y="20" width="52" height="9" fill="#A86F14"/>
+      <ellipse cx="0" cy="20" rx="26" ry="8.5" fill="url(#oro)"/>
+      <ellipse cx="0" cy="19" rx="26" ry="8.5" fill="#A86F14"/>
+      <rect x="-26" y="10" width="52" height="9" fill="#A86F14"/>
+      <ellipse cx="0" cy="10" rx="26" ry="8.5" fill="url(#oro)"/>
+      <ellipse cx="0" cy="9" rx="26" ry="8.5" fill="#A86F14"/>
+      <rect x="-26" y="0" width="52" height="9" fill="#A86F14"/>
+      <ellipse cx="0" cy="0" rx="26" ry="8.5" fill="url(#oro)"/>
+      <ellipse cx="0" cy="0" rx="18" ry="5.5" fill="none" stroke="#C48A22" stroke-width="1.5"/>
+      <text x="0" y="3.6" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700" fill="#8A5A0B">L</text>
+    </g>
+  </g>
+
+  <!-- insignia de cobrado -->
+  <g class="flota">
+    <circle cx="252" cy="54" r="17" fill="#2F8A5F"/>
+    <circle cx="252" cy="54" r="17" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+    <path class="check" d="M244 54.5l5.5 5.5 10.5-11" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <path class="chispa" d="M92 26l2.2 6.3 6.3 2.2-6.3 2.2L92 43l-2.2-6.3-6.3-2.2 6.3-2.2z" fill="#E07A2E"/>
+  <path class="chispa c2" d="M300 92l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6z" fill="#1C7CB5"/>
+</svg>
