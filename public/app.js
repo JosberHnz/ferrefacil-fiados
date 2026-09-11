@@ -24,6 +24,17 @@ function nuevaClave(){
 const ICONO_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
 const ICONO_ERROR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';
 
+// El icono (constante fija, sin datos externos) y el mensaje (variable) se
+// insertan por separado: el icono via innerHTML porque nunca cambia, el
+// mensaje via textContent porque es la unica forma de garantizar, sin
+// depender de ningun sanitizador propio, que un mensaje de error nunca se
+// interprete como HTML.
+function iconoElemento(svg){
+  const span = document.createElement('span');
+  span.innerHTML = svg;
+  return span;
+}
+
 function toast(mensaje, tipo = 'ok'){
   let cont = document.getElementById('toast-container');
   if (!cont) {
@@ -34,8 +45,14 @@ function toast(mensaje, tipo = 'ok'){
   }
   const t = document.createElement('div');
   t.className = `toast toast-${tipo}`;
-  t.innerHTML = (tipo === 'ok' ? ICONO_OK : ICONO_ERROR) + `<span>${escapeHtml(mensaje)}</span>`;
+
+  const texto = document.createElement('span');
+  texto.textContent = mensaje;
+
+  t.appendChild(iconoElemento(tipo === 'ok' ? ICONO_OK : ICONO_ERROR));
+  t.appendChild(texto);
   cont.appendChild(t);
+
   requestAnimationFrame(() => t.classList.add('visible'));
   setTimeout(() => {
     t.classList.remove('visible');
@@ -183,19 +200,27 @@ function showApp(){
   cargarTodo();
 }
 
+function mostrarErrorLogin(mensaje){
+  const errBox = document.getElementById('login-error');
+  errBox.innerHTML = '';
+  const texto = document.createElement('span');
+  texto.textContent = mensaje;
+  errBox.appendChild(iconoElemento(ICONO_ERROR));
+  errBox.appendChild(texto);
+  errBox.classList.remove('hidden');
+}
+
 document.getElementById('login-form').addEventListener('submit', async e => {
   e.preventDefault();
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
-  const errBox = document.getElementById('login-error');
-  errBox.classList.add('hidden');
+  document.getElementById('login-error').classList.add('hidden');
   try {
     const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     usuarioActual = data.user;
     showApp();
   } catch (err) {
-    errBox.innerHTML = ICONO_ERROR + '<span>Correo o contraseña incorrectos</span>';
-    errBox.classList.remove('hidden');
+    mostrarErrorLogin('Correo o contraseña incorrectos');
   }
 });
 
@@ -419,8 +444,6 @@ function pintarChartFiados(porEstado){
     col.appendChild(label);
     cont.appendChild(col);
 
-    // Se anima despues de montar el elemento, para que la transicion CSS
-    // se note (pasar de altura 0 a la real en el siguiente frame).
     requestAnimationFrame(() => { bar.style.height = `${Math.max(6, (f.n / max) * 100)}%`; });
   });
 }
@@ -429,7 +452,10 @@ function pintarTopDeudores(lista){
   const cont = document.getElementById('top-deudores');
   cont.innerHTML = '';
   if (!lista.length) {
-    cont.innerHTML = '<div class="vacio">Ningún cliente tiene deuda pendiente. ¡Excelente!</div>';
+    const vacio = document.createElement('div');
+    vacio.className = 'vacio';
+    vacio.textContent = 'Ningún cliente tiene deuda pendiente. ¡Excelente!';
+    cont.appendChild(vacio);
     return;
   }
   lista.forEach((d, i) => {
@@ -459,7 +485,10 @@ function pintarActividad(items){
   const cont = document.getElementById('actividad-reciente');
   cont.innerHTML = '';
   if (!items.length) {
-    cont.innerHTML = '<div class="vacio">Sin actividad registrada todavía.</div>';
+    const vacio = document.createElement('div');
+    vacio.className = 'vacio';
+    vacio.textContent = 'Sin actividad registrada todavía.';
+    cont.appendChild(vacio);
     return;
   }
   items.forEach(a => {
@@ -590,9 +619,7 @@ function mostrarErrorDeUrl(){
   const error = params.get('error');
   if (!error) return;
 
-  const box = document.getElementById('login-error');
-  box.innerHTML = ICONO_ERROR + `<span>${escapeHtml(error)}</span>`;
-  box.classList.remove('hidden');
+  mostrarErrorLogin(error);
   window.history.replaceState({}, '', window.location.pathname);
 }
 
