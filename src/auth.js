@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 
 const DURACION_SESION_HORAS = 8;
+const ROLES_ADMIN = ['admin', 'super_admin'];
 
 /** Crea una sesion para un usuario ya verificado y devuelve su token. */
 async function crearSesion(usuario) {
@@ -57,12 +58,24 @@ async function requireAuth(req, res, next) {
   }
 }
 
-// Politica de acceso 2: solo 'admin' puede borrar clientes.
+// Politica de acceso 2: solo 'admin' o 'super_admin' pueden borrar clientes.
 function requireAdmin(req, res, next) {
-  if (!req.usuario || req.usuario.rol !== 'admin') {
+  if (!req.usuario || !ROLES_ADMIN.includes(req.usuario.rol)) {
     return res.status(403).json({ error: 'Requiere rol admin' });
   }
   next();
 }
 
-module.exports = { login, logout, requireAuth, requireAdmin, crearSesion, DURACION_SESION_HORAS };
+// Politica de acceso 3: algunas acciones (gestion de usuarios, ver todo sin
+// restriccion) quedan reservadas exclusivamente al super_admin.
+function requireSuperAdmin(req, res, next) {
+  if (!req.usuario || req.usuario.rol !== 'super_admin') {
+    return res.status(403).json({ error: 'Requiere rol super_admin' });
+  }
+  next();
+}
+
+module.exports = {
+  login, logout, requireAuth, requireAdmin, requireSuperAdmin,
+  crearSesion, DURACION_SESION_HORAS, ROLES_ADMIN
+};

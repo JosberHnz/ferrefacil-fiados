@@ -8,6 +8,9 @@ const clientesRoutes = require('./routes/clientes');
 const fiadosRoutes = require('./routes/fiados');
 const healthRoutes = require('./routes/health');
 const { router: publicoRoutes } = require('./routes/publico');
+const feedbackRoutes = require('./routes/feedback');
+const adminRoutes = require('./routes/admin');
+const { registrarError } = require('./tickets');
 
 const app = express();
 
@@ -46,6 +49,8 @@ app.use('/api/clientes', clientesRoutes);
 app.use('/api/fiados', fiadosRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/publico', publicoRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 
 // La raiz sirve la landing (public/index.html). La aplicacion en si vive en
 // /app; se declara explicitamente para que la URL limpia funcione igual en
@@ -88,6 +93,17 @@ app.use((req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error('Error no controlado:', err.message);
+
+  // Cada error real queda registrado como ticket, sin bloquear la respuesta
+  // al cliente (no se espera con await): es lo que le da a "Hermes" (o a
+  // quien revise los tickets despues) algo concreto para diagnosticar.
+  registrarError({
+    mensaje: err.message,
+    ruta: req.originalUrl,
+    metodo: req.method,
+    usuarioId: req.usuario ? req.usuario.id : null
+  });
+
   // Nunca se filtra el detalle interno al cliente: podria incluir fragmentos
   // de la consulta o de la cadena de conexion.
   res.status(500).json({ error: 'Error interno del servidor' });
