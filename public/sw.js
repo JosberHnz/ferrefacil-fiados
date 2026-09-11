@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fiados-v13';
+const CACHE_NAME = 'fiados-v14';
 // '/' es la landing; '/app.html' es el shell de la aplicacion. Se precachea
 // el .html y no la URL limpia '/app': si una entrada de addAll fallara, la
 // instalacion entera del service worker se abortaria.
@@ -25,6 +25,13 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+
+  // Peticiones a otros dominios (por ejemplo, la tipografia de Google
+  // Fonts) se dejan pasar sin intervencion: el service worker corre bajo
+  // la Content-Security-Policy del sitio, que solo permite conexiones a
+  // 'self', asi que si el worker intentara manejarlas el navegador las
+  // rechazaria. El navegador ya sabe pedirlas directamente sin ayuda.
+  if (url.origin !== self.location.origin) return;
 
   // API: intenta red primero (datos frescos); si falla, no hay fallback
   // porque los fiados/pagos requieren datos actuales, no obsoletos.
