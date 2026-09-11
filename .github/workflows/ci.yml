@@ -16,7 +16,7 @@ jobs:
       DEMO_EMAIL: ${{ secrets.DEMO_EMAIL }}
       DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
       APP_URL: ${{ secrets.APP_URL }}
-      DB_SCHEMA: test_fiados_ci
+      CI_RUN_ID: ${{ github.run_id }}
       NODE_ENV: test
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

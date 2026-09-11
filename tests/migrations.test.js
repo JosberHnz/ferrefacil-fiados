@@ -1,10 +1,11 @@
 require('dotenv').config({ quiet: true });
 
-// Esquema propio, para no chocar con el de api.test.js.
-process.env.DB_SCHEMA = 'test_migraciones';
+// Esquema propio, unico por corrida de CI (evita chocar con otros archivos
+// de test o con otra corrida de GitHub Actions que se solape en el tiempo).
+process.env.DB_SCHEMA = 'test_migraciones_' + (process.env.CI_RUN_ID || 'local');
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const db = require('../src/db');
 
 const DIR = path.join(__dirname, '..', 'migrations');

@@ -1,7 +1,9 @@
 require('dotenv').config({ quiet: true });
 
-// Esquema propio, aislado de los otros archivos de test.
-process.env.DB_SCHEMA = 'test_operaciones';
+// Esquema propio, aislado de los otros archivos de test Y de otras
+// corridas de CI que puedan solaparse en el tiempo (usa el ID de la
+// corrida de GitHub Actions para garantizar que nunca choque con otra).
+process.env.DB_SCHEMA = 'test_operaciones_' + (process.env.CI_RUN_ID || 'local');
 
 const request = require('supertest');
 const bcrypt = require('bcryptjs');

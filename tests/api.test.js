@@ -2,8 +2,10 @@ require('dotenv').config({ quiet: true });
 
 // Los tests corren sobre un ESQUEMA APARTE de la misma base. Se crea al
 // empezar y se destruye al terminar, asi que nunca tocan los datos reales
-// de public. Hay que fijarlo antes de requerir src/db, que lo lee al cargar.
-process.env.DB_SCHEMA = process.env.TEST_DB_SCHEMA || 'test_fiados';
+// de public. El nombre incluye CI_RUN_ID para que dos corridas de GitHub
+// Actions que se solapen en el tiempo nunca compartan (ni se pisen) el
+// mismo esquema en la base real.
+process.env.DB_SCHEMA = 'test_fiados_' + (process.env.CI_RUN_ID || 'local');
 
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
@@ -276,10 +278,10 @@ describe('inicio de sesion con Google', () => {
   });
 
   test('el challenge PKCE es el SHA-256 del verifier en base64url', () => {
-    const crypto = require('crypto');
+    const crypto = require('node:crypto');
     const v = google.crearVerifier();
     const esperado = crypto.createHash('sha256').update(v).digest('base64')
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      .replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
     expect(google.challengeDe(v)).toBe(esperado);
     expect(v).not.toMatch(/[+/=]/); // base64url, seguro en una URL
   });
