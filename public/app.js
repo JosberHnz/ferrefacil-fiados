@@ -206,10 +206,13 @@ function mostrarErrorDeUrl(){
   window.history.replaceState({}, '', window.location.pathname);
 }
 
-// Verifica sesion existente al cargar
+// Verifica sesion existente al cargar. /api/auth/me confirma quien soy,
+// incluso si la pagina se recarga despues del login (sin esto, el panel de
+// administracion desaparecia al refrescar aunque la sesion siguiera activa).
 (async () => {
   try {
-    await api('/clientes');
+    const data = await api('/auth/me');
+    usuarioActual = data.user;
     showApp();
   } catch {
     showLogin();
@@ -218,7 +221,3 @@ function mostrarErrorDeUrl(){
     prepararGoogle();
   }
 })();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js');
-}
