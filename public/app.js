@@ -1,7 +1,20 @@
 const API = '/api';
 let clientesCache = [];
 let usuarioActual = null;
-const ROLES_ADMIN = ['admin', 'super_admin'];
+const ROLES_ADMIN = new Set(['admin', 'super_admin']);
+
+// Neutraliza HTML antes de insertarlo con innerHTML. Sin esto, un nombre de
+// cliente o un mensaje de feedback/ticket que contenga codigo (por ejemplo
+// "<img src=x onerror=...>") se interpretaria como HTML real en la pantalla
+// de cualquiera que lo vea, en vez de mostrarse como texto plano.
+function escapeHtml(valor) {
+  return String(valor ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
 function nuevaClave(){
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -137,7 +150,7 @@ async function pagar(fiadoId){
 async function cargarClientes(){
   clientesCache = await api('/clientes');
   const sel = document.getElementById('f-cliente');
-  sel.innerHTML = clientesCache.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+  sel.innerHTML = clientesCache.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
 }
 
 function nombreCliente(id){
@@ -149,8 +162,8 @@ async function cargarFiados(){
   const fiados = await api('/fiados');
   document.getElementById('tabla-fiados').innerHTML = fiados.map(f => `
     <tr>
-      <td>${nombreCliente(f.cliente_id)}</td>
-      <td>${f.descripcion}</td>
+      <td>${escapeHtml(nombreCliente(f.cliente_id))}</td>
+      <td>${escapeHtml(f.descripcion)}</td>
       <td>L. ${f.saldo.toFixed(2)}</td>
       <td>${f.dias_mora > 0 ? `<span class="mora">${f.dias_mora} días</span>` : '—'}</td>
       <td><span class="badge ${f.estado}">${f.estado}</span></td>
@@ -166,7 +179,7 @@ document.getElementById('tabla-fiados').addEventListener('click', e => {
 // ===================== PANEL DE ADMINISTRACION =====================
 
 function esAdmin(){
-  return usuarioActual && ROLES_ADMIN.includes(usuarioActual.rol);
+  return usuarioActual && ROLES_ADMIN.has(usuarioActual.rol);
 }
 
 function mostrarPanelAdminSiCorresponde(){
@@ -193,7 +206,7 @@ document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
     document.querySelectorAll('#panel-admin .card').forEach(c => c.classList.add('hidden'));
 
     const destino = document.getElementById(`tab-${btn.dataset.tab}`);
-    destino.classList.remove('hidden');
+    destino?.classList.remove('hidden');
 
     if (btn.dataset.tab === 'dashboard') cargarDashboard();
     if (btn.dataset.tab === 'tickets') cargarTickets();
@@ -205,7 +218,7 @@ async function cargarDashboard(){
   try {
     const s = await api('/admin/stats');
     const porEstado = s.fiados_por_estado.map(f =>
-      `<div class="stat-box"><b>${f.n}</b><span>${f.estado} · L. ${Number(f.total).toFixed(2)}</span></div>`
+      `<div class="stat-box"><b>${f.n}</b><span>${escapeHtml(f.estado)} · L. ${Number(f.total).toFixed(2)}</span></div>`
     ).join('');
 
     document.getElementById('stats-grid').innerHTML = `
@@ -222,8 +235,8 @@ async function cargarTickets(){
   document.getElementById('tabla-tickets').innerHTML = tickets.map(t => `
     <tr>
       <td>${new Date(t.creado_en).toLocaleString('es-HN')}</td>
-      <td>${t.mensaje}${t.diagnostico ? `<div class="diag-box">Diagnóstico: ${t.diagnostico}</div>` : ''}</td>
-      <td>${t.ruta || '—'}</td>
+      <td>${escapeHtml(t.mensaje)}${t.diagnostico ? `<div class="diag-box">Diagnóstico: ${escapeHtml(t.diagnostico)}</div>` : ''}</td>
+      <td>${escapeHtml(t.ruta || '—')}</td>
       <td><span class="badge ${t.estado}">${t.estado.replace('_',' ')}</span></td>
       <td>${t.estado !== 'resuelto' ? `<button class="secondary small" data-resolver="${t.id}">Marcar resuelto</button>` : ''}</td>
     </tr>`).join('') || '<tr><td colspan="5">Sin tickets registrados. ¡Buena señal!</td></tr>';
@@ -245,8 +258,8 @@ async function cargarFeedbackAdmin(){
   document.getElementById('tabla-feedback').innerHTML = items.map(f => `
     <tr>
       <td>${new Date(f.creado_en).toLocaleString('es-HN')}</td>
-      <td>${f.usuario_email}</td>
-      <td>${f.mensaje}</td>
+      <td>${escapeHtml(f.usuario_email)}</td>
+      <td>${escapeHtml(f.mensaje)}</td>
     </tr>`).join('') || '<tr><td colspan="3">Todavía no hay comentarios.</td></tr>';
 }
 
@@ -291,9 +304,6 @@ function mostrarErrorDeUrl(){
   window.history.replaceState({}, '', window.location.pathname);
 }
 
-// Verifica sesion existente al cargar. /api/auth/me confirma quien soy,
-// incluso si la pagina se recarga despues del login (sin esto, el panel de
-// administracion desaparecia al refrescar aunque la sesion siguiera activa).
 (async () => {
   try {
     const data = await api('/auth/me');
