@@ -3,10 +3,6 @@ let clientesCache = [];
 let usuarioActual = null;
 const ROLES_ADMIN = new Set(['admin', 'super_admin']);
 
-// Neutraliza HTML antes de insertarlo con innerHTML. Sin esto, un nombre de
-// cliente o un mensaje de feedback/ticket que contenga codigo (por ejemplo
-// "<img src=x onerror=...>") se interpretaria como HTML real en la pantalla
-// de cualquiera que lo vea, en vez de mostrarse como texto plano.
 function escapeHtml(valor) {
   return String(valor ?? '')
     .replaceAll('&', '&amp;')
@@ -158,22 +154,48 @@ function nombreCliente(id){
   return c ? c.nombre : '—';
 }
 
+// Construye la query string de filtros a partir de los inputs de la UI.
+function paramsFiltroFiados(){
+  const buscar = document.getElementById('filtro-buscar').value.trim();
+  const estado = document.getElementById('filtro-estado').value;
+  const params = new URLSearchParams();
+  if (buscar) params.set('buscar', buscar);
+  if (estado) params.set('estado', estado);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
 async function cargarFiados(){
-  const fiados = await api('/fiados');
+  const fiados = await api('/fiados' + paramsFiltroFiados());
   document.getElementById('tabla-fiados').innerHTML = fiados.map(f => `
     <tr>
-      <td>${escapeHtml(nombreCliente(f.cliente_id))}</td>
+      <td>${escapeHtml(f.cliente_nombre || nombreCliente(f.cliente_id))}</td>
       <td>${escapeHtml(f.descripcion)}</td>
       <td>L. ${f.saldo.toFixed(2)}</td>
       <td>${f.dias_mora > 0 ? `<span class="mora">${f.dias_mora} días</span>` : '—'}</td>
       <td><span class="badge ${f.estado}">${f.estado}</span></td>
       <td>${f.estado !== 'pagado' ? `<button class="secondary" data-pagar="${f.id}">Abonar</button>` : ''}</td>
-    </tr>`).join('') || '<tr><td colspan="6">Sin fiados registrados todavía.</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="6">Sin fiados que coincidan con la búsqueda.</td></tr>';
 }
 
 document.getElementById('tabla-fiados').addEventListener('click', e => {
   const id = e.target.dataset.pagar;
   if (id) pagar(Number(id));
+});
+
+// Filtros: se recarga la tabla mientras el usuario escribe (con una pequena
+// espera para no disparar una peticion por cada tecla) y al cambiar el
+// select de estado.
+let filtroTimeout;
+document.getElementById('filtro-buscar').addEventListener('input', () => {
+  clearTimeout(filtroTimeout);
+  filtroTimeout = setTimeout(cargarFiados, 300);
+});
+document.getElementById('filtro-estado').addEventListener('change', cargarFiados);
+document.getElementById('btn-limpiar-filtros').addEventListener('click', () => {
+  document.getElementById('filtro-buscar').value = '';
+  document.getElementById('filtro-estado').value = '';
+  cargarFiados();
 });
 
 // ===================== PANEL DE ADMINISTRACION =====================
@@ -203,7 +225,9 @@ document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.classList.remove('activo'));
     btn.classList.add('activo');
-    document.querySelectorAll('#panel-admin .card').forEach(c => c.classList.add('hidden'));
+    document.getElementById('tab-dashboard').classList.add('hidden');
+    document.getElementById('tab-tickets').classList.add('hidden');
+    document.getElementById('tab-feedback').classList.add('hidden');
 
     const destino = document.getElementById(`tab-${btn.dataset.tab}`);
     destino?.classList.remove('hidden');
@@ -214,13 +238,9 @@ document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
   });
 });
 
-// Construye una tarjeta de estadistica con createElement/textContent en vez
-// de innerHTML, para que sea imposible ejecutar HTML/JS a traves de ella,
-// sin depender de que ninguna herramienta de analisis reconozca un patron
-// de escape.
-function crearStatBox(valor, etiqueta) {
+function crearStatBox(valor, etiqueta, alerta) {
   const box = document.createElement('div');
-  box.className = 'stat-box';
+  box.className = alerta ? 'stat-box alerta' : 'stat-box';
 
   const b = document.createElement('b');
   b.textContent = String(valor);
@@ -233,6 +253,103 @@ function crearStatBox(valor, etiqueta) {
   return box;
 }
 
+// Colores por estado, coherentes con los badges del resto de la app.
+const COLOR_ESTADO = { pendiente: '#B08B2E', parcial: '#3A5687', pagado: '#2C6A51' };
+
+function pintarChartFiados(porEstado){
+  const cont = document.getElementById('chart-fiados');
+  cont.innerHTML = '';
+  const max = Math.max(1, ...porEstado.map(f => f.n));
+
+  porEstado.forEach(f => {
+    const col = document.createElement('div');
+    col.className = 'chart-bar-col';
+
+    const valor = document.createElement('div');
+    valor.className = 'chart-bar-value';
+    valor.textContent = f.n;
+
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    bar.style.height = `${Math.max(6, (f.n / max) * 100)}%`;
+    bar.style.background = COLOR_ESTADO[f.estado] || '#5D6C7B';
+
+    const label = document.createElement('div');
+    label.className = 'chart-bar-label';
+    label.textContent = f.estado;
+
+    col.appendChild(valor);
+    col.appendChild(bar);
+    col.appendChild(label);
+    cont.appendChild(col);
+  });
+}
+
+function pintarTopDeudores(lista){
+  const cont = document.getElementById('top-deudores');
+  cont.innerHTML = '';
+  if (!lista.length) {
+    cont.textContent = 'Ningún cliente tiene deuda pendiente. ¡Excelente!';
+    return;
+  }
+  lista.forEach(d => {
+    const fila = document.createElement('div');
+    fila.className = 'deudor-row';
+    const nombre = document.createElement('span');
+    nombre.textContent = d.nombre;
+    const monto = document.createElement('b');
+    monto.textContent = `L. ${Number(d.deuda).toFixed(2)}`;
+    fila.appendChild(nombre);
+    fila.appendChild(monto);
+    cont.appendChild(fila);
+  });
+}
+
+function pintarActividad(items){
+  const cont = document.getElementById('actividad-reciente');
+  cont.innerHTML = '';
+  if (!items.length) {
+    cont.textContent = 'Sin actividad registrada todavía.';
+    return;
+  }
+  items.forEach(a => {
+    const fila = document.createElement('div');
+    fila.className = 'actividad-item';
+
+    const izq = document.createElement('span');
+    const tipo = document.createElement('span');
+    tipo.className = `actividad-tipo ${a.tipo}`;
+    tipo.textContent = a.tipo === 'fiado' ? 'nuevo fiado' : 'abono';
+    izq.appendChild(tipo);
+    izq.append(` ${a.cliente} · ${a.detalle}`);
+
+    const der = document.createElement('b');
+    der.textContent = `L. ${Number(a.monto).toFixed(2)}`;
+
+    fila.appendChild(izq);
+    fila.appendChild(der);
+    cont.appendChild(fila);
+  });
+}
+
+// Notificacion del navegador cuando hay fiados en mora critica (>15 dias).
+// No depende de ningun servicio externo (correo/SMS): usa la API nativa de
+// Notificaciones, que el propio navegador del admin gestiona.
+function avisarMoraCriticaSiCorresponde(cantidad){
+  if (cantidad <= 0 || !('Notification' in window)) return;
+
+  const mostrar = () => new Notification('Fiados Ferrefacil', {
+    body: `Tenés ${cantidad} fiado(s) con más de 15 días de mora.`,
+    icon: '/icons/icon-192.png'
+  });
+
+  if (Notification.permission === 'granted') {
+    mostrar();
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(p => { if (p === 'granted') mostrar(); });
+  }
+}
+
 async function cargarDashboard(){
   try {
     const s = await api('/admin/stats');
@@ -240,11 +357,15 @@ async function cargarDashboard(){
     grid.innerHTML = '';
 
     grid.appendChild(crearStatBox(s.total_clientes, 'clientes'));
-    s.fiados_por_estado.forEach(f => {
-      grid.appendChild(crearStatBox(f.n, `${f.estado} · L. ${Number(f.total).toFixed(2)}`));
-    });
     grid.appendChild(crearStatBox(s.tickets_abiertos, 'tickets abiertos'));
     grid.appendChild(crearStatBox(s.total_feedback, 'comentarios recibidos'));
+    grid.appendChild(crearStatBox(s.mora_promedio_dias, 'días de mora (promedio)'));
+    grid.appendChild(crearStatBox(s.mora_critica_count, 'fiados en mora crítica', s.mora_critica_count > 0));
+
+    pintarChartFiados(s.fiados_por_estado);
+    pintarTopDeudores(s.top_deudores);
+    pintarActividad(s.actividad_reciente);
+    avisarMoraCriticaSiCorresponde(s.mora_critica_count);
   } catch (e) { /* si no es admin, la ruta ya no se ve */ }
 }
 
