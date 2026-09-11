@@ -19,15 +19,144 @@ function nuevaClave(){
   return Date.now() + '-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ===================== UI: toasts y modales (reemplazan alert/prompt/confirm) =====================
+
+const ICONO_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
+const ICONO_ERROR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';
+
+function toast(mensaje, tipo = 'ok'){
+  let cont = document.getElementById('toast-container');
+  if (!cont) {
+    cont = document.createElement('div');
+    cont.id = 'toast-container';
+    cont.className = 'toast-container';
+    document.body.appendChild(cont);
+  }
+  const t = document.createElement('div');
+  t.className = `toast toast-${tipo}`;
+  t.innerHTML = (tipo === 'ok' ? ICONO_OK : ICONO_ERROR) + `<span>${escapeHtml(mensaje)}</span>`;
+  cont.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('visible'));
+  setTimeout(() => {
+    t.classList.remove('visible');
+    setTimeout(() => t.remove(), 300);
+  }, 3800);
+}
+
+/** Modal con uno o varios campos. Devuelve un objeto {campo: valor} o null si se cancela. */
+function abrirModal({ titulo, campos, textoConfirmar = 'Guardar' }){
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+
+    const h = document.createElement('h3');
+    h.textContent = titulo;
+    box.appendChild(h);
+
+    const inputs = {};
+    campos.forEach(c => {
+      const label = document.createElement('label');
+      label.className = 'modal-label';
+      label.textContent = c.label;
+
+      const input = document.createElement(c.tipo === 'textarea' ? 'textarea' : 'input');
+      if (c.tipo && c.tipo !== 'textarea') input.type = c.tipo;
+      if (c.placeholder) input.placeholder = c.placeholder;
+      if (c.valor) input.value = c.valor;
+      inputs[c.nombre] = input;
+
+      label.appendChild(input);
+      box.appendChild(label);
+    });
+
+    const acciones = document.createElement('div');
+    acciones.className = 'modal-acciones';
+
+    const btnCancelar = document.createElement('button');
+    btnCancelar.type = 'button';
+    btnCancelar.className = 'secondary';
+    btnCancelar.textContent = 'Cancelar';
+
+    const btnOk = document.createElement('button');
+    btnOk.type = 'button';
+    btnOk.textContent = textoConfirmar;
+
+    acciones.appendChild(btnCancelar);
+    acciones.appendChild(btnOk);
+    box.appendChild(acciones);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    function cerrar(valor){
+      overlay.remove();
+      resolve(valor);
+    }
+
+    btnCancelar.addEventListener('click', () => cerrar(null));
+    overlay.addEventListener('click', e => { if (e.target === overlay) cerrar(null); });
+    btnOk.addEventListener('click', () => {
+      const valores = {};
+      for (const k in inputs) valores[k] = inputs[k].value;
+      cerrar(valores);
+    });
+
+    const primero = Object.values(inputs)[0];
+    if (primero) setTimeout(() => primero.focus(), 30);
+  });
+}
+
+/** Modal de confirmacion simple. Devuelve true/false. */
+function confirmarModal(mensaje){
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'modal-box modal-box-sm';
+
+    const p = document.createElement('p');
+    p.textContent = mensaje;
+    box.appendChild(p);
+
+    const acciones = document.createElement('div');
+    acciones.className = 'modal-acciones';
+
+    const btnCancelar = document.createElement('button');
+    btnCancelar.type = 'button';
+    btnCancelar.className = 'secondary';
+    btnCancelar.textContent = 'Cancelar';
+
+    const btnOk = document.createElement('button');
+    btnOk.type = 'button';
+    btnOk.className = 'danger';
+    btnOk.textContent = 'Confirmar';
+
+    acciones.appendChild(btnCancelar);
+    acciones.appendChild(btnOk);
+    box.appendChild(acciones);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    btnCancelar.addEventListener('click', () => { overlay.remove(); resolve(false); });
+    btnOk.addEventListener('click', () => { overlay.remove(); resolve(true); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve(false); } });
+  });
+}
+
+// ===================== resto de la app =====================
+
 async function conBoton(id, fn){
   const btn = document.getElementById(id);
   if (btn.disabled) return;
-  const texto = btn.textContent;
+  const contenidoOriginal = btn.innerHTML;
   btn.disabled = true;
   btn.textContent = 'Guardando...';
   try { await fn(); }
-  catch (e) { alert(e.message || 'No se pudo completar la operacion'); }
-  finally { btn.disabled = false; btn.textContent = texto; }
+  catch (e) { toast(e.message || 'No se pudo completar la operacion', 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = contenidoOriginal; }
 }
 
 async function api(path, opts = {}) {
@@ -65,7 +194,7 @@ document.getElementById('login-form').addEventListener('submit', async e => {
     usuarioActual = data.user;
     showApp();
   } catch (err) {
-    errBox.textContent = 'Correo o contraseña incorrectos';
+    errBox.innerHTML = ICONO_ERROR + '<span>Correo o contraseña incorrectos</span>';
     errBox.classList.remove('hidden');
   }
 });
@@ -78,26 +207,31 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 
 document.getElementById('btn-feedback').addEventListener('click', () =>
   conBoton('btn-feedback', async () => {
-    const mensaje = prompt('¿Qué comentario querés dejar sobre la app?');
-    if (!mensaje || !mensaje.trim()) return;
+    const r = await abrirModal({
+      titulo: 'Dejar un comentario',
+      campos: [{ nombre: 'mensaje', tipo: 'textarea', label: '¿Qué comentario querés dejar sobre la app?', placeholder: 'Escribí acá...' }],
+      textoConfirmar: 'Enviar'
+    });
+    if (!r || !r.mensaje.trim()) return;
     await api('/feedback', {
       method: 'POST', clave: nuevaClave(),
-      body: JSON.stringify({ mensaje: mensaje.trim() })
+      body: JSON.stringify({ mensaje: r.mensaje.trim() })
     });
-    alert('¡Gracias! Tu comentario fue enviado.');
+    toast('¡Gracias! Tu comentario fue enviado.');
   }));
 
 document.getElementById('btn-crear-cliente').addEventListener('click', () =>
   conBoton('btn-crear-cliente', async () => {
     const nombre = document.getElementById('c-nombre').value.trim();
     const telefono = document.getElementById('c-telefono').value.trim();
-    if (!nombre) return alert('El nombre es requerido');
+    if (!nombre) return toast('El nombre es requerido', 'error');
     await api('/clientes', {
       method: 'POST', clave: nuevaClave(),
       body: JSON.stringify({ nombre, telefono })
     });
     document.getElementById('c-nombre').value = '';
     document.getElementById('c-telefono').value = '';
+    toast('Cliente agregado correctamente.');
     await cargarClientes();
   }));
 
@@ -107,13 +241,14 @@ document.getElementById('btn-crear-fiado').addEventListener('click', () =>
     const descripcion = document.getElementById('f-desc').value.trim();
     const monto = document.getElementById('f-monto').value;
     const fecha_vencimiento = document.getElementById('f-vence').value;
-    if (!cliente_id || !descripcion || !monto || !fecha_vencimiento) return alert('Completá todos los campos');
+    if (!cliente_id || !descripcion || !monto || !fecha_vencimiento) return toast('Completá todos los campos', 'error');
     await api('/fiados', {
       method: 'POST', clave: nuevaClave(),
       body: JSON.stringify({ cliente_id, descripcion, monto, fecha_vencimiento })
     });
     document.getElementById('f-desc').value = '';
     document.getElementById('f-monto').value = '';
+    toast('Fiado registrado correctamente.');
     await cargarFiados();
   }));
 
@@ -122,8 +257,12 @@ const abonosEnCurso = new Set();
 async function pagar(fiadoId){
   if (abonosEnCurso.has(fiadoId)) return;
 
-  const monto = prompt('¿Cuánto se abona?');
-  if (!monto) return;
+  const r = await abrirModal({
+    titulo: 'Registrar abono',
+    campos: [{ nombre: 'monto', tipo: 'number', label: '¿Cuánto se abona? (L.)', placeholder: '0.00' }],
+    textoConfirmar: 'Abonar'
+  });
+  if (!r || !r.monto) return;
 
   abonosEnCurso.add(fiadoId);
   const boton = document.querySelector(`[data-pagar="${fiadoId}"]`);
@@ -132,11 +271,12 @@ async function pagar(fiadoId){
   try {
     await api(`/fiados/${fiadoId}/pagos`, {
       method: 'POST', clave: nuevaClave(),
-      body: JSON.stringify({ monto: Number(monto) })
+      body: JSON.stringify({ monto: Number(r.monto) })
     });
+    toast('Abono registrado.');
     await cargarFiados();
   } catch (e) {
-    alert(e.message || 'No se pudo registrar el abono');
+    toast(e.message || 'No se pudo registrar el abono', 'error');
     if (boton) boton.disabled = false;
   } finally {
     abonosEnCurso.delete(fiadoId);
@@ -154,7 +294,6 @@ function nombreCliente(id){
   return c ? c.nombre : '—';
 }
 
-// Construye la query string de filtros a partir de los inputs de la UI.
 function paramsFiltroFiados(){
   const buscar = document.getElementById('filtro-buscar').value.trim();
   const estado = document.getElementById('filtro-estado').value;
@@ -174,8 +313,8 @@ async function cargarFiados(){
       <td>L. ${f.saldo.toFixed(2)}</td>
       <td>${f.dias_mora > 0 ? `<span class="mora">${f.dias_mora} días</span>` : '—'}</td>
       <td><span class="badge ${f.estado}">${f.estado}</span></td>
-      <td>${f.estado !== 'pagado' ? `<button class="secondary" data-pagar="${f.id}">Abonar</button>` : ''}</td>
-    </tr>`).join('') || '<tr><td colspan="6">Sin fiados que coincidan con la búsqueda.</td></tr>';
+      <td>${f.estado !== 'pagado' ? `<button class="secondary small" data-pagar="${f.id}">Abonar</button>` : ''}</td>
+    </tr>`).join('') || '<tr><td colspan="6"><div class="vacio">Sin fiados que coincidan con la búsqueda.</div></td></tr>';
 }
 
 document.getElementById('tabla-fiados').addEventListener('click', e => {
@@ -183,9 +322,6 @@ document.getElementById('tabla-fiados').addEventListener('click', e => {
   if (id) pagar(Number(id));
 });
 
-// Filtros: se recarga la tabla mientras el usuario escribe (con una pequena
-// espera para no disparar una peticion por cada tecla) y al cambiar el
-// select de estado.
 let filtroTimeout;
 document.getElementById('filtro-buscar').addEventListener('input', () => {
   clearTimeout(filtroTimeout);
@@ -206,11 +342,12 @@ function esAdmin(){
 
 function mostrarPanelAdminSiCorresponde(){
   const badge = document.getElementById('rol-badge');
+  const badgeTexto = document.getElementById('rol-badge-texto');
   const panel = document.getElementById('panel-admin');
 
   if (!usuarioActual) { badge.classList.add('hidden'); panel.classList.add('hidden'); return; }
 
-  badge.textContent = usuarioActual.rol.replace('_', ' ');
+  badgeTexto.textContent = usuarioActual.rol.replace('_', ' ');
   badge.classList.remove('hidden');
 
   if (esAdmin()) {
@@ -253,7 +390,6 @@ function crearStatBox(valor, etiqueta, alerta) {
   return box;
 }
 
-// Colores por estado, coherentes con los badges del resto de la app.
 const COLOR_ESTADO = { pendiente: '#B08B2E', parcial: '#3A5687', pagado: '#2C6A51' };
 
 function pintarChartFiados(porEstado){
@@ -271,7 +407,7 @@ function pintarChartFiados(porEstado){
 
     const bar = document.createElement('div');
     bar.className = 'chart-bar';
-    bar.style.height = `${Math.max(6, (f.n / max) * 100)}%`;
+    bar.style.height = '0%';
     bar.style.background = COLOR_ESTADO[f.estado] || '#5D6C7B';
 
     const label = document.createElement('div');
@@ -282,6 +418,10 @@ function pintarChartFiados(porEstado){
     col.appendChild(bar);
     col.appendChild(label);
     cont.appendChild(col);
+
+    // Se anima despues de montar el elemento, para que la transicion CSS
+    // se note (pasar de altura 0 a la real en el siguiente frame).
+    requestAnimationFrame(() => { bar.style.height = `${Math.max(6, (f.n / max) * 100)}%`; });
   });
 }
 
@@ -289,17 +429,27 @@ function pintarTopDeudores(lista){
   const cont = document.getElementById('top-deudores');
   cont.innerHTML = '';
   if (!lista.length) {
-    cont.textContent = 'Ningún cliente tiene deuda pendiente. ¡Excelente!';
+    cont.innerHTML = '<div class="vacio">Ningún cliente tiene deuda pendiente. ¡Excelente!</div>';
     return;
   }
-  lista.forEach(d => {
+  lista.forEach((d, i) => {
     const fila = document.createElement('div');
     fila.className = 'deudor-row';
+
+    const izq = document.createElement('div');
+    izq.className = 'deudor-nombre';
+    const rank = document.createElement('span');
+    rank.className = 'deudor-rank';
+    rank.textContent = String(i + 1);
     const nombre = document.createElement('span');
     nombre.textContent = d.nombre;
+    izq.appendChild(rank);
+    izq.appendChild(nombre);
+
     const monto = document.createElement('b');
     monto.textContent = `L. ${Number(d.deuda).toFixed(2)}`;
-    fila.appendChild(nombre);
+
+    fila.appendChild(izq);
     fila.appendChild(monto);
     cont.appendChild(fila);
   });
@@ -309,7 +459,7 @@ function pintarActividad(items){
   const cont = document.getElementById('actividad-reciente');
   cont.innerHTML = '';
   if (!items.length) {
-    cont.textContent = 'Sin actividad registrada todavía.';
+    cont.innerHTML = '<div class="vacio">Sin actividad registrada todavía.</div>';
     return;
   }
   items.forEach(a => {
@@ -332,9 +482,6 @@ function pintarActividad(items){
   });
 }
 
-// Notificacion del navegador cuando hay fiados en mora critica (>15 dias).
-// No depende de ningun servicio externo (correo/SMS): usa la API nativa de
-// Notificaciones, que el propio navegador del admin gestiona.
 function avisarMoraCriticaSiCorresponde(cantidad){
   if (cantidad <= 0 || !('Notification' in window)) return;
 
@@ -378,17 +525,23 @@ async function cargarTickets(){
       <td>${escapeHtml(t.ruta || '—')}</td>
       <td><span class="badge ${t.estado}">${t.estado.replace('_',' ')}</span></td>
       <td>${t.estado !== 'resuelto' ? `<button class="secondary small" data-resolver="${t.id}">Marcar resuelto</button>` : ''}</td>
-    </tr>`).join('') || '<tr><td colspan="5">Sin tickets registrados. ¡Buena señal!</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="5"><div class="vacio">Sin tickets registrados. ¡Buena señal!</div></td></tr>';
 }
 
 document.getElementById('tabla-tickets').addEventListener('click', async e => {
   const id = e.target.dataset.resolver;
   if (!id) return;
-  const diagnostico = prompt('Diagnóstico (qué causó el error, qué se hizo):') || '';
+  const r = await abrirModal({
+    titulo: 'Resolver ticket',
+    campos: [{ nombre: 'diagnostico', tipo: 'textarea', label: 'Diagnóstico (qué causó el error, qué se hizo)', placeholder: 'Escribí acá...' }],
+    textoConfirmar: 'Marcar resuelto'
+  });
+  if (!r) return;
   await api(`/admin/tickets/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ estado: 'resuelto', diagnostico })
+    body: JSON.stringify({ estado: 'resuelto', diagnostico: r.diagnostico || '' })
   });
+  toast('Ticket marcado como resuelto.');
   cargarTickets();
 });
 
@@ -399,7 +552,7 @@ async function cargarFeedbackAdmin(){
       <td>${new Date(f.creado_en).toLocaleString('es-HN')}</td>
       <td>${escapeHtml(f.usuario_email)}</td>
       <td>${escapeHtml(f.mensaje)}</td>
-    </tr>`).join('') || '<tr><td colspan="3">Todavía no hay comentarios.</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="3"><div class="vacio">Todavía no hay comentarios.</div></td></tr>';
 }
 
 async function cargarTodo(){
@@ -438,7 +591,7 @@ function mostrarErrorDeUrl(){
   if (!error) return;
 
   const box = document.getElementById('login-error');
-  box.textContent = error;
+  box.innerHTML = ICONO_ERROR + `<span>${escapeHtml(error)}</span>`;
   box.classList.remove('hidden');
   window.history.replaceState({}, '', window.location.pathname);
 }
