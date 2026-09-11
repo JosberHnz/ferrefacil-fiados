@@ -214,19 +214,37 @@ document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
   });
 });
 
+// Construye una tarjeta de estadistica con createElement/textContent en vez
+// de innerHTML, para que sea imposible ejecutar HTML/JS a traves de ella,
+// sin depender de que ninguna herramienta de analisis reconozca un patron
+// de escape.
+function crearStatBox(valor, etiqueta) {
+  const box = document.createElement('div');
+  box.className = 'stat-box';
+
+  const b = document.createElement('b');
+  b.textContent = String(valor);
+
+  const span = document.createElement('span');
+  span.textContent = etiqueta;
+
+  box.appendChild(b);
+  box.appendChild(span);
+  return box;
+}
+
 async function cargarDashboard(){
   try {
     const s = await api('/admin/stats');
-    const porEstado = s.fiados_por_estado.map(f =>
-      `<div class="stat-box"><b>${f.n}</b><span>${escapeHtml(f.estado)} · L. ${Number(f.total).toFixed(2)}</span></div>`
-    ).join('');
+    const grid = document.getElementById('stats-grid');
+    grid.innerHTML = '';
 
-    document.getElementById('stats-grid').innerHTML = `
-      <div class="stat-box"><b>${s.total_clientes}</b><span>clientes</span></div>
-      ${porEstado}
-      <div class="stat-box"><b>${s.tickets_abiertos}</b><span>tickets abiertos</span></div>
-      <div class="stat-box"><b>${s.total_feedback}</b><span>comentarios recibidos</span></div>
-    `;
+    grid.appendChild(crearStatBox(s.total_clientes, 'clientes'));
+    s.fiados_por_estado.forEach(f => {
+      grid.appendChild(crearStatBox(f.n, `${f.estado} · L. ${Number(f.total).toFixed(2)}`));
+    });
+    grid.appendChild(crearStatBox(s.tickets_abiertos, 'tickets abiertos'));
+    grid.appendChild(crearStatBox(s.total_feedback, 'comentarios recibidos'));
   } catch (e) { /* si no es admin, la ruta ya no se ve */ }
 }
 
