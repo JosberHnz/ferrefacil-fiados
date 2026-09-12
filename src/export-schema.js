@@ -79,7 +79,7 @@ async function exportar() {
     salida.push({
       nombre: tablename,
       filas,
-      rls: !!(rls && rls.activo),
+      rls: Boolean(rls?.activo),
       politicas_rls: politicas.map(p => p.policyname),
       columnas: columnas.map(c => ({
         nombre: c.column_name,

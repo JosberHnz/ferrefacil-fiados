@@ -174,6 +174,17 @@ describe('enrutado de paginas', () => {
     expect(res.text).toContain('href="/app"');
   });
 
+  // landing.js rellena estos elementos con datos de la API: si un rediseño
+  // los borra, la vitrina y las credenciales demo dejan de mostrarse sin
+  // ningun error visible. Y la CSP solo permite imagenes locales.
+  test('la landing conserva lo que usa landing.js y solo carga imagenes locales', async () => {
+    const res = await request(app).get('/');
+    for (const id of ['vitrina', 'demo-email', 'demo-password']) {
+      expect(res.text).toContain(`id="${id}"`);
+    }
+    expect(res.text).not.toMatch(/<img[^>]+src="(?:https?:)?\/\//);
+  });
+
   // La CSP solo permite imagenes de 'self' y data:, asi que las ilustraciones
   // tienen que vivir en public/ y no en un servicio externo.
   test('las ilustraciones de la app se sirven como SVG locales', async () => {

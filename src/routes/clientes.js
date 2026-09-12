@@ -30,7 +30,7 @@ router.get('/:id', cache.cachePrivada(), asyncHandler(async (req, res) => {
 
 router.post('/', cache.sinCache, idempotente, asyncHandler(async (req, res) => {
   const { nombre, telefono, direccion, limite_credito } = req.body || {};
-  if (!nombre || !nombre.trim()) return res.status(400).json({ error: 'nombre es requerido' });
+  if (!nombre?.trim()) return res.status(400).json({ error: 'nombre es requerido' });
 
   // RETURNING evita la segunda consulta que hacia falta con lastInsertRowid.
   const cliente = await db.one(

@@ -9,205 +9,450 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://josberhnz.lat">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
-<meta name="theme-color" content="#1F5468">
+<meta name="theme-color" content="#182028">
 <meta name="description" content="Fiados Ferrefacil: controla el credito de tu ferreteria con calculo automatico de mora. Sustituye el cuaderno de fiados por una app instalable.">
 <title>Fiados Ferrefacil · Control de fiados con mora automatica</title>
 <link rel="icon" href="/icons/icon-192.png">
 <link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="/landing.js"></script>
 <style>
 :root{
-  /* Neutros frios */
+  /* Mismos tokens que la aplicacion (public/app.html) */
   --bg:#F4F6F7; --paper:#FFFFFF;
   --ink:#182028; --ink-soft:#24303B;
   --muted:#5D6C7B; --line:#DDE3E8;
-  /* Texto sobre superficies oscuras */
   --on-dark:#C2CCD4; --on-dark-soft:#8B98A4;
-  /* Acento: azul pizarra */
   --accent:#1F5468; --accent-dark:#143C4C;
   --accent-soft:#E7EFF2; --accent-tint:#7FB3C4;
-  /* Estados, en tonos apagados */
   --ok:#2C6A51; --ok-soft:#E4EEE9;
   --warn:#7E621B; --warn-soft:#F2ECDC;
   --danger:#9E3A31; --danger-soft:#F4E3E1;
   --info:#3A5687; --info-soft:#E6EBF5;
-  --radius:12px; --shadow:0 6px 20px rgba(24,32,40,.10);
+  --serie-fiado:#1C7CB5; --serie-abono:#E07A2E;
+  --estado-pendiente:#C0841A; --estado-parcial:#3F6FA8; --estado-pagado:#2F8A5F;
+  --radius:16px;
+  --shadow:0 1px 2px rgba(24,32,40,.06),0 8px 24px rgba(24,32,40,.08);
+  --shadow-hover:0 2px 4px rgba(24,32,40,.06),0 20px 44px rgba(24,32,40,.14);
+  --ease:cubic-bezier(.2,.8,.3,1);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
 body{
-  margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;
-  background:var(--bg);color:var(--ink);line-height:1.65;
+  margin:0;font-family:'Inter','Segoe UI',Arial,Helvetica,sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;
 }
 a{color:var(--accent)}
+img{max-width:100%;height:auto}
+.contenedor{max-width:1140px;margin:0 auto;padding:0 24px}
+.solo-lectores{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
-/* ---------- barra superior ---------- */
-.nav{
-  background:var(--ink);color:#fff;padding:14px 24px;
-  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+/* ================= animaciones compartidas ================= */
+@keyframes surgir{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes surgirEscala{from{opacity:0;transform:translateY(34px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes flotar{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes deriva{50%{transform:translate(70px,40px) scale(1.12)}}
+@keyframes degradado{to{background-position:100% 0}}
+@keyframes trazar{to{stroke-dashoffset:0}}
+@keyframes aparecer{to{opacity:1}}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(158,58,49,.45)}100%{box-shadow:0 0 0 8px rgba(158,58,49,0)}}
+@keyframes pulsoVivo{0%{box-shadow:0 0 0 0 rgba(111,207,151,.65)}100%{box-shadow:0 0 0 9px rgba(111,207,151,0)}}
+@keyframes llenar{from{width:0}}
+
+/* ================= barra superior ================= */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:16px 0;transition:background .3s,box-shadow .3s,padding .3s}
+.nav.solida{
+  background:rgba(20,28,35,.82);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);
+  box-shadow:0 10px 30px rgba(0,0,0,.22);padding:10px 0;
 }
-.nav .brand{font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
-.nav .links{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.nav .links a{color:var(--on-dark);text-decoration:none;font-size:14px}
-.nav .links a:hover{color:#fff}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:17px;text-decoration:none;letter-spacing:-.2px}
+.logo{
+  display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;font-size:18px;
+  background:linear-gradient(135deg,rgba(127,179,196,.38),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.16);
+  transition:transform .45s var(--ease);
+}
+.brand:hover .logo{transform:rotate(-14deg) scale(1.08)}
+.links{display:flex;align-items:center;gap:28px}
+.links a:not(.btn){color:var(--on-dark);text-decoration:none;font-size:14px;font-weight:500;position:relative;transition:color .2s}
+.links a:not(.btn):hover{color:#fff}
+.links a:not(.btn)::after{
+  content:"";position:absolute;left:0;bottom:-5px;height:2px;width:100%;border-radius:2px;
+  background:linear-gradient(90deg,var(--accent-tint),var(--serie-abono));transform:scaleX(0);transform-origin:right;transition:transform .3s var(--ease);
+}
+.links a:not(.btn):hover::after{transform:scaleX(1);transform-origin:left}
 
-/* ---------- botones ---------- */
+/* ================= botones ================= */
 .btn{
-  display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
-  padding:13px 26px;border-radius:8px;font-weight:700;font-size:15px;
-  border:2px solid var(--accent);
-  transition:background .15s,border-color .15s,transform .15s,box-shadow .15s;
+  position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;
+  background:var(--accent);color:#fff;text-decoration:none;padding:13px 24px;border-radius:12px;
+  font-weight:700;font-size:15px;border:1.5px solid var(--accent);
+  transition:background .2s,border-color .2s,transform .25s var(--ease),box-shadow .25s;
 }
-.btn:hover{background:var(--accent-dark);border-color:var(--accent-dark);transform:translateY(-2px);box-shadow:0 8px 18px rgba(232,89,12,.28)}
-.btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
-.btn.ghost:hover{background:rgba(255,255,255,.10);border-color:#fff;box-shadow:none}
-.btn.small{padding:9px 18px;font-size:14px}
+.btn svg{width:17px;height:17px;transition:transform .3s var(--ease)}
+.btn::after{
+  content:"";position:absolute;top:0;bottom:0;left:-70%;width:45%;transform:skewX(-20deg);
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.32),transparent);transition:left .7s var(--ease);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(31,84,104,.32)}
+.btn:hover::after{left:135%}
+.btn:hover svg{transform:translateX(4px)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn.brillante{
+  background:linear-gradient(135deg,#2B7C99 0%,var(--accent) 55%,var(--accent-dark) 100%);border-color:rgba(127,179,196,.45);
+  box-shadow:0 10px 26px rgba(31,84,104,.5),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.btn.brillante:hover{box-shadow:0 16px 36px rgba(31,84,104,.6),inset 0 1px 0 rgba(255,255,255,.2)}
+.btn.ghost{background:rgba(255,255,255,.04);color:#fff;border-color:rgba(255,255,255,.24)}
+.btn.ghost:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.55);box-shadow:none}
+.btn.small{padding:9px 16px;font-size:14px;border-radius:10px}
+.btn:focus-visible,a:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(127,179,196,.65)}
 
-/* ---------- hero ---------- */
-.hero{background:var(--ink);color:#fff;padding:64px 24px 72px}
-.hero-inner{
-  max-width:1060px;margin:0 auto;display:grid;grid-template-columns:1.05fr .95fr;
-  gap:56px;align-items:center;
+/* ================= hero ================= */
+.hero{
+  position:relative;overflow:hidden;color:#fff;padding:140px 0 132px;
+  background:radial-gradient(1100px 620px at 85% -10%,rgba(127,179,196,.20),transparent 60%),
+             linear-gradient(160deg,var(--ink) 0%,#111920 60%,#0C1216 100%);
 }
+.hero::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(ellipse 75% 65% at 50% 35%,#000 25%,transparent 80%);
+  mask-image:radial-gradient(ellipse 75% 65% at 50% 35%,#000 25%,transparent 80%);
+}
+.brillo{position:absolute;border-radius:50%;pointer-events:none}
+.brillo.b1{width:600px;height:600px;left:-200px;top:-160px;background:radial-gradient(circle,rgba(127,179,196,.26),transparent 65%);animation:deriva 16s ease-in-out infinite}
+.brillo.b2{width:560px;height:560px;right:-180px;bottom:-260px;background:radial-gradient(circle,rgba(224,122,46,.20),transparent 65%);animation:deriva 19s ease-in-out -7s infinite reverse}
+.hero-inner{position:relative;display:grid;grid-template-columns:1.02fr .98fr;gap:64px;align-items:center}
 .eyebrow{
-  display:inline-block;background:rgba(127,179,196,.16);color:var(--accent-tint);
-  font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-  padding:6px 13px;border-radius:20px;margin-bottom:18px;
+  display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:7px 15px 7px 11px;border-radius:30px;
+  background:rgba(127,179,196,.12);border:1px solid rgba(127,179,196,.3);color:#CFE3EA;
+  font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;animation:surgir .65s .05s both;
 }
-.hero h1{font-size:42px;line-height:1.18;margin:0 0 18px;letter-spacing:-.5px;animation:surgir .65s .16s both}
-.hero h1 em{color:var(--accent);font-style:normal}
-.hero p.lead{color:var(--on-dark);font-size:18px;margin:0 0 30px;max-width:520px}
-.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;animation:surgir .65s .38s both}
-.hero-note{color:var(--on-dark-soft);font-size:13px;margin:0;animation:surgir .65s .49s both}
+.punto-vivo{width:8px;height:8px;border-radius:50%;background:#6FCF97;animation:pulsoVivo 2s ease-out infinite}
+.hero h1{font-size:56px;line-height:1.06;margin:0 0 22px;letter-spacing:-1.8px;font-weight:800;animation:surgir .7s .15s both}
+.hero h1 em{
+  font-style:normal;background:linear-gradient(100deg,#A9D8E6 0%,#7FB3C4 38%,#F2A65A 100%);background-size:200% auto;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:degradado 7s ease-in-out infinite alternate;
+}
+.lead{color:var(--on-dark);font-size:18.5px;margin:0 0 34px;max-width:540px;animation:surgir .7s .28s both}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px;animation:surgir .7s .4s both}
+.confianza{display:flex;flex-wrap:wrap;gap:10px 24px;margin:0;padding:0;list-style:none;color:var(--on-dark);font-size:14px;animation:surgir .7s .52s both}
+.confianza li{display:flex;align-items:center;gap:8px}
+.confianza svg{width:18px;height:18px;color:#6FCF97}
 
-/* ---------- mockup de tarjeta ---------- */
-.mock{
-  background:var(--paper);border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.34);
-  overflow:hidden;color:var(--ink);
-  animation:surgirEscala .85s .34s both,flotar 7s 1.4s ease-in-out infinite;
+/* --- escena: ventana de la app + tarjetas flotantes --- */
+.escena{position:relative;animation:flotar 8s 1.6s ease-in-out infinite}
+.tilt{transform:perspective(1300px) rotateY(var(--ry,-7deg)) rotateX(var(--rx,3deg));transition:transform .7s var(--ease)}
+.ventana{
+  position:relative;background:var(--paper);color:var(--ink);border-radius:18px;overflow:hidden;
+  box-shadow:0 44px 100px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);animation:surgirEscala .95s .25s both;
 }
-.mock-bar{
-  background:var(--bg);border-bottom:1px solid var(--line);
-  padding:11px 16px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;
+.ventana-barra{display:flex;align-items:center;gap:6px;padding:11px 14px;background:#EDF1F3;border-bottom:1px solid var(--line)}
+.ventana-barra i{width:10px;height:10px;border-radius:50%;background:#F26B5E}
+.ventana-barra i:nth-child(2){background:#F6BE4F}
+.ventana-barra i:nth-child(3){background:#5FC76B}
+.ventana-barra span{
+  flex:1;margin-left:10px;background:#fff;border:1px solid var(--line);border-radius:8px;
+  font-size:11.5px;color:var(--muted);padding:3px 10px;text-align:center;
 }
+.ventana-cuerpo{padding:18px 18px 16px;background:linear-gradient(180deg,#F6FAFB,#FFFFFF)}
+.mini-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:6px}
+.mini-label{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
+.mini-valor{display:block;font-size:30px;font-weight:800;letter-spacing:-.9px;line-height:1.15;white-space:nowrap}
+.mini-detalle{font-size:12px;color:var(--muted)}
+.mini-kpis{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.mini-kpis span{font-size:11.5px;color:var(--muted);background:var(--accent-soft);padding:4px 10px;border-radius:20px;white-space:nowrap}
+.mini-kpis b{color:var(--ink)}
+.mini-kpis .alerta{background:var(--danger-soft);color:var(--danger)}
+.mini-kpis .alerta b{color:var(--danger)}
+.mini-grafica{display:block;width:100%;height:auto;margin:6px 0 12px}
+.mg-linea{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mg-linea.fiado{stroke:var(--serie-fiado)}
+.mg-linea.abono{stroke:var(--serie-abono)}
+.mg-base{stroke:var(--line);stroke-width:1}
+
+.mock{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.mock-bar{display:flex;justify-content:space-between;padding:9px 14px;font-size:12px;font-weight:700;background:var(--bg);border-bottom:1px solid var(--line)}
 .mock-bar span{color:var(--muted);font-weight:600}
-.mock-row{padding:14px 16px;border-bottom:1px solid var(--line);animation:surgir .55s both}
+.mock-row{padding:10px 14px;border-bottom:1px solid var(--line);animation:surgir .55s both}
 .mock-row:last-child{border-bottom:none}
+.mock-row:nth-child(2){animation-delay:.75s}
+.mock-row:nth-child(3){animation-delay:.87s}
+.mock-row:nth-child(4){animation-delay:.99s}
 .mock-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.mock-name{font-weight:700;font-size:15px}
-.mock-amount{font-weight:700;font-size:15px;white-space:nowrap}
-.mock-desc{color:var(--muted);font-size:13px;margin:2px 0 9px}
-.badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block}
+.mock-name{font-weight:700;font-size:13.5px}
+.mock-amount{font-weight:700;font-size:13.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mock-desc{color:var(--muted);font-size:12px;margin:1px 0 7px}
+.badge{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .badge.pendiente{background:var(--warn-soft);color:var(--warn)}
 .badge.parcial{background:var(--info-soft);color:var(--info)}
 .badge.pagado{background:var(--ok-soft);color:var(--ok)}
-.mora{color:var(--danger);font-weight:700;font-size:12px;margin-left:8px}
+.mora{color:var(--danger);font-weight:700;font-size:11.5px;margin-left:8px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.mora::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--danger);animation:pulso 1.8s ease-out infinite}
 
-/* ---------- franja de datos ---------- */
-.strip{background:var(--paper);border-bottom:1px solid var(--line);padding:26px 24px}
-.strip-inner{
-  max-width:1060px;margin:0 auto;display:grid;
-  grid-template-columns:repeat(4,1fr);gap:20px;text-align:center;
+.flotante{
+  position:absolute;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 15px 10px 10px;border-radius:14px;
+  background:rgba(255,255,255,.97);color:var(--ink);font-size:12px;line-height:1.3;box-shadow:0 20px 44px rgba(0,0,0,.32);
 }
-.strip b{display:block;font-size:26px;color:var(--accent);line-height:1.2;transition:transform .22s ease}
-.strip span{font-size:13px;color:var(--muted)}
+.flotante b{display:block;font-size:13.5px}
+.flotante span{color:var(--muted)}
+.flotante .ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--ok-soft);color:var(--ok)}
+.flotante .ico svg{width:17px;height:17px}
+.flotante.alerta .ico{background:var(--danger-soft);color:var(--danger)}
+.flotante.info .ico{background:var(--accent-soft);color:var(--accent)}
+.f1{left:-62px;top:252px;animation:surgir .7s 1.4s both,flotar 6s 2.1s ease-in-out infinite}
+.f2{right:-34px;top:-22px;animation:surgir .7s 1.7s both,flotar 7s 2.4s ease-in-out infinite}
+.f3{right:-30px;bottom:40px;animation:surgir .7s 2s both,flotar 5.5s 2.7s ease-in-out infinite}
 
-/* ---------- secciones ---------- */
-main{max-width:1060px;margin:0 auto;padding:64px 24px}
-section{margin-bottom:72px}
-section:last-child{margin-bottom:0}
-h2{font-size:27px;margin:0 0 12px;letter-spacing:-.3px}
-.section-intro{color:var(--muted);font-size:16px;max-width:640px;margin:0 0 30px}
+/* ================= metricas bajo el hero ================= */
+.metricas{position:relative;z-index:3;margin-top:-72px}
+.metricas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.metrica{
+  display:flex;align-items:center;gap:14px;padding:20px 18px;border-radius:var(--radius);
+  background:rgba(255,255,255,.98);border:1px solid var(--line);box-shadow:0 22px 48px rgba(24,32,40,.12);
+  transition:transform .35s var(--ease),box-shadow .35s;
+}
+.metrica:hover{transform:translateY(-5px);box-shadow:0 28px 56px rgba(24,32,40,.16)}
+.metrica .ico{
+  width:46px;height:46px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:var(--accent-soft);color:var(--accent);transition:transform .4s var(--ease);
+}
+.metrica:hover .ico{transform:rotate(-10deg) scale(1.1)}
+.metrica .ico svg{width:22px;height:22px}
+.metrica b{display:block;font-size:25px;font-weight:800;letter-spacing:-.6px;line-height:1.15}
+.metrica span{display:block;font-size:13px;color:var(--muted);line-height:1.35}
 
-.split{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
-.panel h3{margin:0 0 12px;font-size:18px;display:flex;align-items:center;gap:9px}
-.panel ul{margin:0;padding-left:20px;color:var(--muted);font-size:15px}
-.panel li{margin-bottom:9px}
-.panel li:last-child{margin-bottom:0}
-.panel.before{border-top:4px solid var(--danger)}
-.panel.after{border-top:4px solid var(--ok)}
+/* ================= secciones ================= */
+main{padding-top:104px}
+.seccion{margin-bottom:120px}
+.seccion-cabeza{max-width:700px;margin:0 0 44px}
+.seccion-cabeza.centro{margin:0 auto 48px;text-align:center}
+.etiqueta{
+  display:inline-flex;align-items:center;gap:9px;margin-bottom:12px;
+  font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);
+}
+.etiqueta::before{content:"";width:20px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent-tint),var(--serie-abono))}
+.etiqueta.clara{color:var(--accent-tint)}
+h2{font-size:40px;line-height:1.14;margin:0 0 14px;letter-spacing:-1.1px;font-weight:800}
+.section-intro{color:var(--muted);font-size:17.5px;margin:0}
 
-.features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.feature{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
-.feature .ico{font-size:24px;display:block;margin-bottom:12px;transition:transform .22s ease}
-.feature h3{margin:0 0 8px;font-size:16px}
+/* --- antes / despues --- */
+.comparacion{display:grid;grid-template-columns:1fr auto 1fr;gap:22px;align-items:stretch}
+.panel{
+  position:relative;border-radius:20px;padding:30px;background:var(--paper);border:1px solid var(--line);
+  box-shadow:var(--shadow);transition:transform .35s var(--ease),box-shadow .35s;
+}
+.panel:hover{transform:translateY(-5px);box-shadow:var(--shadow-hover)}
+.panel.antes{background:#FAFBFB}
+.panel.despues{
+  border:1.5px solid transparent;
+  background:linear-gradient(#fff,#fff) padding-box,linear-gradient(135deg,var(--accent-tint),var(--serie-fiado) 50%,var(--serie-abono)) border-box;
+  box-shadow:0 26px 60px rgba(31,84,104,.16);
+}
+.panel-cabeza{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.panel-ico{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.panel-ico svg{width:24px;height:24px}
+.antes .panel-ico{background:#ECEFF1;color:var(--muted)}
+.despues .panel-ico{background:var(--accent-soft);color:var(--accent)}
+.panel-tag{display:block;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.despues .panel-tag{color:var(--ok)}
+.panel h3{margin:0;font-size:20px;letter-spacing:-.3px}
+.lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:13px}
+.lista li{display:grid;grid-template-columns:24px 1fr;gap:11px;align-items:start;font-size:15px;color:var(--ink-soft)}
+.antes .lista li{color:var(--muted)}
+.lista i{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.lista i svg{width:13px;height:13px}
+.lista .no{background:var(--danger-soft);color:var(--danger)}
+.lista .si{background:var(--ok-soft);color:var(--ok)}
+.vs{
+  align-self:center;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:#fff;font-weight:800;font-size:14px;letter-spacing:.04em;box-shadow:0 12px 26px rgba(24,32,40,.28);
+}
+
+/* --- funciones en rejilla tipo bento --- */
+.bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.feature{
+  position:relative;overflow:hidden;padding:28px;border-radius:20px;background:var(--paper);border:1px solid var(--line);
+  box-shadow:var(--shadow);transition:transform .35s var(--ease),box-shadow .35s,border-color .35s;
+}
+.feature::after{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;transform:scaleX(0);transform-origin:left;
+  background:linear-gradient(90deg,var(--accent-tint),var(--serie-fiado),var(--serie-abono));transition:transform .5s var(--ease);
+}
+.feature:hover{transform:translateY(-6px);box-shadow:var(--shadow-hover);border-color:#D2DAE0}
+.feature:hover::after{transform:scaleX(1)}
+.feature.ancha{grid-column:span 2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;align-items:center}
+.feature .ico{
+  width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+  background:var(--accent-soft);color:var(--accent);transition:transform .4s var(--ease);
+}
+.feature:hover .ico{transform:rotate(-10deg) scale(1.1)}
+.feature .ico svg{width:23px;height:23px}
+.feature h3{margin:0 0 8px;font-size:18px;letter-spacing:-.3px}
 .feature p{margin:0;color:var(--muted);font-size:14.5px}
-
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:paso}
-.step{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:24px;position:relative;box-shadow:var(--shadow)}
-.step::before{
-  counter-increment:paso;content:counter(paso);
-  width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin-bottom:13px;
+.visual{border-radius:16px;padding:18px;background:linear-gradient(160deg,#F5FAFB,#E6EFF2);border:1px solid var(--line)}
+.fechas{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.fecha{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;text-align:center;box-shadow:var(--shadow)}
+.fecha span{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fecha b{font-size:16px;white-space:nowrap}
+.tramo{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+.tramo i{display:block;height:100%;width:100%;border-radius:6px;background:linear-gradient(90deg,var(--estado-pendiente),var(--danger))}
+.resultado{margin-top:14px;display:flex;justify-content:center}
+.resultado .mora{margin:0;font-size:14px;background:#fff;border:1px solid var(--danger-soft);padding:7px 14px;border-radius:30px;box-shadow:var(--shadow)}
+.abono-demo{margin-top:18px}
+.abono-demo .fila{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.abono-demo .fila b{color:var(--ink)}
+.progreso{height:8px;background:var(--line);border-radius:6px;overflow:hidden}
+.progreso i{display:block;height:100%;width:62%;border-radius:6px;background:linear-gradient(90deg,#3E9A73,var(--estado-pagado))}
+.avatares{display:flex;align-items:center;margin-top:18px}
+.avatares span{
+  width:38px;height:38px;border-radius:50%;margin-left:-10px;border:3px solid #fff;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--accent-tint),var(--accent));transition:transform .3s var(--ease);
 }
-.step h3{margin:0 0 7px;font-size:16px}
-.step p{margin:0;color:var(--muted);font-size:14.5px}
+.avatares span:first-child{margin-left:0}
+.avatares span:nth-child(2){background:linear-gradient(135deg,#F2A65A,var(--serie-abono))}
+.avatares span:nth-child(3){background:linear-gradient(135deg,#6FB08F,var(--estado-pagado))}
+.avatares span:last-child{background:var(--ink);font-size:11px}
+.feature:hover .avatares span{transform:translateY(-3px)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+.chip{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;background:var(--bg);border:1px solid var(--line);color:var(--ink-soft)}
+.barra-estados{display:flex;gap:2px;height:14px;margin-top:18px}
+.barra-estados i{border-radius:0}
+.barra-estados i:first-child{border-radius:4px 0 0 4px}
+.barra-estados i:last-child{border-radius:0 4px 4px 0}
+.leyenda{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--ink-soft);font-weight:600}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda span::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--c)}
+.visual-panel{display:flex;align-items:center;justify-content:center;padding:10px}
+.visual-panel img{width:100%;max-width:300px}
 
-/* ---------- caja demo ---------- */
+/* --- banda: panel para el dueño --- */
+.banda{position:relative;overflow:hidden;padding:100px 0;margin-bottom:120px;background:linear-gradient(180deg,var(--bg) 0%,#E4EEF2 45%,var(--bg) 100%)}
+.banda::before{
+  content:"";position:absolute;width:520px;height:520px;right:-120px;top:40px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(127,179,196,.35),transparent 70%);
+}
+.panel-grid{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:64px;align-items:center}
+.lista-check{list-style:none;margin:26px 0 32px;padding:0;display:flex;flex-direction:column;gap:14px}
+.lista-check li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;font-size:15.5px;color:var(--ink-soft)}
+.lista-check i{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--ok-soft);color:var(--ok)}
+.lista-check i svg{width:15px;height:15px}
+.recos-demo{display:flex;flex-direction:column;gap:12px}
+.reco{
+  position:relative;overflow:hidden;display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:13px;align-items:center;
+  padding:15px 15px 15px 18px;border-radius:15px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);
+  transition:transform .35s var(--ease),box-shadow .35s;
+}
+.reco:hover{transform:translateX(-4px);box-shadow:var(--shadow-hover)}
+.reco::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.reco-icono{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--f);color:var(--c)}
+.reco-icono svg{width:19px;height:19px}
+.reco small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--c)}
+.reco b{display:block;font-size:14.5px;line-height:1.35}
+.reco p{margin:2px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.reco-boton{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:9px;border:1.5px solid var(--line);white-space:nowrap}
+.reco.critico{--c:var(--danger);--f:var(--danger-soft)}
+.reco.atencion{--c:var(--warn);--f:var(--warn-soft)}
+.reco.bien{--c:var(--ok);--f:var(--ok-soft)}
+.reco.critico .reco-icono{animation:pulso 2s ease-out infinite}
+.consejo-mini{
+  display:flex;align-items:center;gap:16px;padding:14px 18px 14px 14px;border-radius:15px;border:1px solid var(--line);
+  background:linear-gradient(120deg,#FFFFFF,#EAF3F6);box-shadow:var(--shadow);
+}
+.consejo-mini img{width:92px;flex-shrink:0}
+.consejo-mini small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}
+.consejo-mini b{display:block;font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--accent-dark);line-height:1.2}
+.consejo-mini span{font-size:13px;color:var(--muted)}
+
+/* --- como funciona --- */
+.pasos{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px;list-style:none;margin:0;padding:0}
+.pasos::before,.pasos::after{content:"";position:absolute;top:35px;left:17%;right:17%;height:2px;border-radius:2px}
+.pasos::before{background:repeating-linear-gradient(90deg,#C9D2D8 0 8px,transparent 8px 15px)}
+.pasos::after{background:linear-gradient(90deg,var(--accent-tint),var(--serie-fiado),var(--serie-abono));transform-origin:left}
+.paso{position:relative;text-align:center;padding:0 10px}
+.paso-circulo{
+  position:relative;z-index:1;width:72px;height:72px;margin:0 auto 22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#2B7C99,var(--accent-dark));color:#fff;border:5px solid var(--bg);
+  box-shadow:0 14px 30px rgba(31,84,104,.35);transition:transform .4s var(--ease);
+}
+.paso:hover .paso-circulo{transform:translateY(-4px) rotate(-8deg)}
+.paso-circulo svg{width:28px;height:28px}
+.paso-num{
+  position:absolute;top:-4px;right:-6px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--serie-abono);color:#fff;font-size:12.5px;font-weight:800;border:3px solid var(--bg);
+}
+.paso h3{margin:0 0 8px;font-size:18.5px;letter-spacing:-.3px}
+.paso p{margin:0 auto;color:var(--muted);font-size:15px;max-width:300px}
+
+/* --- demo --- */
 .demo{
-  background:var(--ink);color:#fff;border-radius:var(--radius);
-  padding:38px 32px;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center;
+  position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center;
+  padding:54px 52px;border-radius:26px;color:#fff;
+  background:radial-gradient(700px 400px at 100% 0%,rgba(127,179,196,.22),transparent 60%),
+             radial-gradient(600px 380px at 0% 100%,rgba(224,122,46,.16),transparent 60%),
+             linear-gradient(150deg,var(--ink) 0%,#0E151A 100%);
+  box-shadow:0 40px 80px rgba(24,32,40,.28);
 }
-.demo h2{color:#fff;margin-bottom:8px}
-.demo p{color:var(--on-dark);margin:0 0 16px;font-size:15px}
+.demo::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:40px 40px;-webkit-mask-image:linear-gradient(90deg,#000,transparent 70%);mask-image:linear-gradient(90deg,#000,transparent 70%);
+}
+.demo > *{position:relative}
+.demo h2{color:#fff}
+.demo p{color:var(--on-dark);margin:0 0 22px;font-size:16.5px}
 .creds{
-  font-family:Consolas,'Courier New',monospace;font-size:14px;
-  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);
-  border-radius:8px;padding:13px 16px;display:inline-block;line-height:1.9;
+  display:inline-grid;grid-template-columns:auto auto;gap:6px 16px;align-items:center;margin-bottom:28px;padding:14px 18px;
+  border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
 }
-.creds b{color:var(--accent-tint);font-weight:700}
+.creds span{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--on-dark-soft)}
+.creds b{font-family:Consolas,'Courier New',monospace;font-size:15px;color:#BFE0EA;font-weight:700}
+.demo-cta{display:flex;gap:12px;flex-wrap:wrap}
+.demo-img{
+  justify-self:center;width:100%;max-width:340px;padding:22px;border-radius:22px;background:#fff;
+  box-shadow:0 30px 60px rgba(0,0,0,.35);transform:rotate(3deg);transition:transform .5s var(--ease);
+}
+.demo:hover .demo-img{transform:rotate(0) scale(1.03)}
 
-/* ---------- pie ---------- */
-footer{background:var(--ink);color:var(--on-dark-soft);padding:34px 24px;font-size:14px;border-top:1px solid rgba(255,255,255,.10)}
-.footer-inner{max-width:1060px;margin:0 auto;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center}
-footer a{color:var(--on-dark);text-decoration:none;margin-left:20px}
-footer a:hover{color:#fff}
-footer .fl a:first-child{margin-left:0}
+/* ================= pie ================= */
+footer{background:var(--ink);color:var(--on-dark-soft);padding:44px 0;font-size:14px;margin-top:120px}
+.footer-inner{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center}
+.footer-marca{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700}
+footer nav{display:flex;gap:22px;flex-wrap:wrap}
+footer nav a{color:var(--on-dark);text-decoration:none;transition:color .2s}
+footer nav a:hover{color:#fff}
 
-/* ================= ANIMACIONES =================
+/* ================= animaciones con JS =================
    El estado inicial oculto cuelga de [data-anim="on"], atributo que pone
    landing.js solo si puede animar. Sin JS, nada de esto aplica y la pagina
    se ve completa. */
-
-@keyframes surgir{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-@keyframes surgirEscala{from{opacity:0;transform:translateY(30px) scale(.97)}to{opacity:1;transform:none}}
-@keyframes flotar{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
-@keyframes latir{0%,100%{opacity:1}50%{opacity:.45}}
-@keyframes llenar{from{width:0}to{width:62%}}
-
-/* --- entrada del hero: en cuanto carga, escalonada --- */
-.hero .eyebrow{animation:surgir .65s .05s both}
-.hero .lead{animation:surgir .65s .27s both}
-.mock-row:nth-child(2){animation-delay:.62s}
-.mock-row:nth-child(3){animation-delay:.74s}
-.mock-row:nth-child(4){animation-delay:.86s}
-/* El dato que vende el producto: parpadeo lento sobre la mora. */
-.mock-row:nth-child(2) .mora{animation:latir 2.6s 1.8s ease-in-out infinite}
-
-/* Barra de abono: se llena sola, ilustra el pago parcial. */
-.progreso{height:4px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
-.progreso i{display:block;height:100%;width:62%;background:var(--ok);border-radius:3px}
-[data-anim="on"] .progreso i{animation:llenar 1.5s 1.5s cubic-bezier(.22,.9,.3,1) both}
-
-/* --- revelado al hacer scroll --- */
-[data-anim="on"] .reveal{opacity:0;transform:translateY(22px)}
+[data-anim="on"] .reveal{opacity:0;transform:translateY(26px)}
 [data-anim="on"] .reveal.visible{
   opacity:1;transform:none;
-  transition:opacity .75s cubic-bezier(.16,.84,.44,1),transform .75s cubic-bezier(.16,.84,.44,1);
+  transition:opacity .8s cubic-bezier(.16,.84,.44,1),transform .8s cubic-bezier(.16,.84,.44,1);
 }
-
-/* --- microinteracciones --- */
-.feature,.step,.panel{transition:transform .22s ease,box-shadow .22s ease}
-.feature:hover,.step:hover,.panel:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(24,32,40,.14)}
-.feature:hover .ico{transform:scale(1.16) rotate(-6deg)}
-.strip-inner>div:hover b{transform:scale(1.1)}
-.nav .links a:not(.btn){position:relative}
-.nav .links a:not(.btn)::after{
-  content:"";position:absolute;left:0;bottom:-4px;height:2px;width:100%;
-  background:var(--accent);transform:scaleX(0);transform-origin:right;transition:transform .25s ease;
-}
-.nav .links a:not(.btn):hover::after{transform:scaleX(1);transform-origin:left}
+[data-anim="on"] .mg-linea{stroke-dasharray:1;stroke-dashoffset:1;animation:trazar 1.7s var(--ease) 1s forwards}
+[data-anim="on"] .mg-linea.abono{animation-delay:1.25s}
+[data-anim="on"] .mg-area{opacity:0;animation:aparecer .9s ease 1.7s forwards}
+[data-anim="on"] .tramo i{width:0}
+[data-anim="on"] .visible .tramo i{width:100%;transition:width 1.4s var(--ease) .3s}
+[data-anim="on"] .progreso i{width:0}
+[data-anim="on"] .visible .progreso i{width:62%;transition:width 1.4s var(--ease) .4s}
+[data-anim="on"] .barra-estados i{flex-grow:0 !important}
+[data-anim="on"] .visible .barra-estados i{flex-grow:var(--g) !important;transition:flex-grow 1.2s var(--ease) .3s}
+[data-anim="on"] .pasos::after{transform:scaleX(0)}
+[data-anim="on"] .pasos.visible::after{transform:scaleX(1);transition:transform 1.6s var(--ease) .4s}
+[data-anim="on"] .pasos .paso{opacity:0;transform:translateY(20px)}
+[data-anim="on"] .pasos.visible .paso{opacity:1;transform:none;transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:calc(var(--i) * 180ms + 150ms)}
+[data-anim="on"] .recos-demo > *{opacity:0;transform:translateX(30px)}
+[data-anim="on"] .recos-demo.visible > *{opacity:1;transform:none;transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:calc(var(--i) * 140ms + 100ms)}
+/* Una vez dentro, el hover vuelve a responder rapido. */
+[data-anim="on"] .recos-demo.visible > .reco:hover{transition-delay:0s}
 
 /* Quien pide menos movimiento no recibe ninguno. */
 @media(prefers-reduced-motion:reduce){
@@ -215,206 +460,410 @@ footer .fl a:first-child{margin-left:0}
   .reveal{opacity:1 !important;transform:none !important}
 }
 
-/* ---------- responsive ---------- */
-@media(max-width:860px){
-  .hero-inner,.split,.features,.steps,.demo{grid-template-columns:1fr}
-  .hero-inner{gap:38px}
-  .hero h1{font-size:33px}
-  .strip-inner{grid-template-columns:repeat(2,1fr);gap:22px}
-  main{padding:48px 20px}
-  section{margin-bottom:56px}
-  .demo{text-align:center;justify-items:center}
+/* ================= responsive ================= */
+@media(max-width:980px){
+  .hero-inner{grid-template-columns:1fr;gap:70px}
+  .hero h1{font-size:46px}
+  .escena{max-width:560px;width:100%;margin:0 auto}
+  .metricas-grid{grid-template-columns:repeat(2,1fr)}
+  .bento{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel-grid{grid-template-columns:1fr;gap:48px}
+  .demo{grid-template-columns:1fr;padding:44px 32px}
+  .demo-img{max-width:300px}
 }
-@media(max-width:460px){
-  .nav .links a:not(.btn){display:none}
-  .hero h1{font-size:28px}
+@media(max-width:720px){
+  .links a:not(.btn){display:none}
+  .hero{padding:118px 0 110px}
+  .hero h1{font-size:37px;letter-spacing:-1.1px}
+  .lead{font-size:16.5px}
+  h2{font-size:31px;letter-spacing:-.8px}
+  .seccion,.banda{margin-bottom:88px}
+  .banda{padding:72px 0}
+  .tilt{transform:none}
+  .f1{left:-8px;top:auto;bottom:-26px}
+  .f2{right:-6px;top:-26px}
+  .f3{display:none}
+  .comparacion{grid-template-columns:1fr}
+  .vs{margin:-4px auto}
+  .bento{grid-template-columns:1fr}
+  .feature.ancha{grid-column:auto;grid-template-columns:1fr}
+  .pasos{grid-template-columns:1fr;gap:40px}
+  .pasos::before,.pasos::after{display:none}
+  .demo{padding:36px 22px;text-align:center}
+  .creds{text-align:left}
+  .demo-cta{justify-content:center}
+  footer{margin-top:88px}
+}
+@media(max-width:440px){
+  .metricas-grid{grid-template-columns:1fr}
+  .mini-hero{flex-direction:column;align-items:flex-start}
+  .mini-kpis{flex-direction:row;align-items:flex-start;flex-wrap:wrap}
 }
 </style>
 </head>
 <body>
 
-<nav class="nav">
-  <div class="brand">🔧 Fiados Ferrefacil</div>
-  <div class="links">
-    <a href="#problema">El problema</a>
-    <a href="#funciones">Funciones</a>
-    <a href="#como">Cómo funciona</a>
-    <a href="/presentacion.html">Presentación</a>
-    <a class="btn small" href="/app">Iniciar sesión</a>
+<header class="nav">
+  <div class="contenedor nav-inner">
+    <a class="brand" href="/"><span class="logo" aria-hidden="true">🔧</span>Fiados Ferrefacil</a>
+    <nav class="links" aria-label="Secciones">
+      <a href="#problema">El problema</a>
+      <a href="#funciones">Funciones</a>
+      <a href="#panel">Panel</a>
+      <a href="#como">Cómo funciona</a>
+      <a class="btn small" href="/app">Iniciar sesión</a>
+    </nav>
   </div>
-</nav>
+</header>
 
-<header class="hero">
-  <div class="hero-inner">
+<section class="hero">
+  <span class="brillo b1" aria-hidden="true"></span>
+  <span class="brillo b2" aria-hidden="true"></span>
+  <div class="contenedor hero-inner">
     <div>
-      <span class="eyebrow">Para ferreterías y pulperías</span>
+      <span class="eyebrow"><span class="punto-vivo" aria-hidden="true"></span>Para ferreterías y pulperías</span>
       <h1>El cuaderno de fiados, <em>con la mora ya calculada</em>.</h1>
       <p class="lead">
         Registrá quién debe, cuánto y desde cuándo. El sistema cuenta los días de
         atraso por vos y lleva el historial de cada abono hasta que la deuda queda saldada.
       </p>
       <div class="hero-cta">
-        <a class="btn" href="/app">Iniciar sesión</a>
-        <a class="btn ghost" href="#funciones">Ver qué hace</a>
+        <a class="btn brillante" href="/app">
+          Probar la demo
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a class="btn ghost" href="#como">Ver cómo funciona</a>
       </div>
-      <p class="hero-note">Se instala en el celular · Funciona sin internet · Usuario demo incluido</p>
+      <ul class="confianza">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Se instala en el celular</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Funciona sin internet</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Usuario demo incluido</li>
+      </ul>
     </div>
 
-    <!-- Las filas de abajo son un respaldo estatico. landing.js las sustituye
-         por datos reales de /api/publico/vitrina; si el fetch falla, se
-         quedan estas y la landing nunca se ve vacia. -->
-    <div class="mock" id="vitrina" aria-hidden="true">
-      <div class="mock-bar">Fiados pendientes <span>Hoy</span></div>
-      <div class="mock-row">
-        <div class="mock-top">
-          <span class="mock-name">Carlos Martínez</span>
-          <span class="mock-amount">L. 850.00</span>
+    <div class="escena" aria-hidden="true">
+      <div class="tilt">
+        <div class="ventana">
+          <div class="ventana-barra"><i></i><i></i><i></i><span>josberhnz.lat/app</span></div>
+          <div class="ventana-cuerpo">
+            <div class="mini-hero">
+              <div>
+                <span class="mini-label">Saldo pendiente por cobrar</span>
+                <b class="mini-valor" data-contar="21480.5" data-formato="lempiras">L. 21,480.50</b>
+                <span class="mini-detalle">en 27 fiados abiertos</span>
+              </div>
+              <div class="mini-kpis">
+                <span><b>48</b> clientes</span>
+                <span class="alerta"><b>5</b> en mora crítica</span>
+              </div>
+            </div>
+            <svg class="mini-grafica" viewBox="0 0 300 86">
+              <defs>
+                <linearGradient id="mg-degradado" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#1C7CB5" stop-opacity=".22"/>
+                  <stop offset="1" stop-color="#1C7CB5" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <line class="mg-base" x1="0" y1="85" x2="300" y2="85"/>
+              <path class="mg-area" fill="url(#mg-degradado)" d="M2,51 C31,51 31,37.5 60,37.5 C90,37.5 90,45 120,45 C150,45 150,25.4 180,25.4 C210,25.4 210,34.6 240,34.6 C270,34.6 270,19.2 298,19.2 L298,85 L2,85 Z"/>
+              <path class="mg-linea fiado" pathLength="1" d="M2,51 C31,51 31,37.5 60,37.5 C90,37.5 90,45 120,45 C150,45 150,25.4 180,25.4 C210,25.4 210,34.6 240,34.6 C270,34.6 270,19.2 298,19.2"/>
+              <path class="mg-linea abono" pathLength="1" d="M2,63.8 C31,63.8 31,52.1 60,52.1 C90,52.1 90,42.5 120,42.5 C150,42.5 150,44.2 180,44.2 C210,44.2 210,29.2 240,29.2 C270,29.2 270,38.3 298,38.3"/>
+            </svg>
+
+            <!-- Las filas de abajo son un respaldo estatico. landing.js las sustituye
+                 por datos reales de /api/publico/vitrina; si el fetch falla, se
+                 quedan estas y la landing nunca se ve vacia. -->
+            <div class="mock" id="vitrina">
+              <div class="mock-bar">Fiados pendientes <span>Hoy</span></div>
+              <div class="mock-row">
+                <div class="mock-top">
+                  <span class="mock-name">Carlos M.</span>
+                  <span class="mock-amount">L. 850.00</span>
+                </div>
+                <p class="mock-desc">Cemento 5 sacos + varilla</p>
+                <span class="badge pendiente">Pendiente</span><span class="mora">18 días de mora</span>
+              </div>
+              <div class="mock-row">
+                <div class="mock-top">
+                  <span class="mock-name">María L.</span>
+                  <span class="mock-amount">L. 180.00</span>
+                </div>
+                <p class="mock-desc">Tornillos y clavos varios</p>
+                <span class="badge parcial">Parcial</span><span class="mora">4 días de mora</span>
+              </div>
+              <div class="mock-row">
+                <div class="mock-top">
+                  <span class="mock-name">Josué D.</span>
+                  <span class="mock-amount">L. 0.00</span>
+                </div>
+                <p class="mock-desc">Pintura 1 galón</p>
+                <span class="badge pagado">Pagado</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <p class="mock-desc">Cemento 5 sacos + varilla</p>
-        <span class="badge pendiente">Pendiente</span><span class="mora">18 días de mora</span>
       </div>
-      <div class="mock-row">
-        <div class="mock-top">
-          <span class="mock-name">María López</span>
-          <span class="mock-amount">L. 180.00</span>
-        </div>
-        <p class="mock-desc">Tornillos y clavos varios</p>
-        <span class="badge parcial">Parcial</span><span class="mora">4 días de mora</span>
-        <div class="progreso"><i></i></div>
+
+      <div class="flotante f1">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+        <div><b>+ L. 500.00</b><span>Abono registrado</span></div>
       </div>
-      <div class="mock-row">
-        <div class="mock-top">
-          <span class="mock-name">Josué Discua</span>
-          <span class="mock-amount">L. 0.00</span>
-        </div>
-        <p class="mock-desc">Pintura 1 galón</p>
-        <span class="badge pagado">Pagado</span>
+      <div class="flotante f2 alerta">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg></span>
+        <div><b>5 fiados en mora crítica</b><span>Más de 15 días vencidos</span></div>
+      </div>
+      <div class="flotante f3 info">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></span>
+        <div><b>Cartera al día</b><span>Gráfica de 6 meses</span></div>
       </div>
     </div>
   </div>
-</header>
+</section>
 
-<div class="strip">
-  <div class="strip-inner">
-    <div class="reveal" data-delay="0"><b>0</b><span>cuentas hechas a mano</span></div>
-    <div class="reveal" data-delay="90"><b>100%</b><span>de los fiados con fecha</span></div>
-    <div class="reveal" data-delay="180"><b>Offline</b><span>consulta sin señal</span></div>
-    <div class="reveal" data-delay="270"><b>1 toque</b><span>para registrar un abono</span></div>
+<div class="metricas">
+  <div class="contenedor metricas-grid">
+    <div class="metrica reveal" data-delay="0">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h4"/></svg></span>
+      <div><b>0</b><span>cuentas hechas a mano</span></div>
+    </div>
+    <div class="metrica reveal" data-delay="90">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+      <div><b data-contar="100" data-sufijo="%">100%</b><span>de los fiados con fecha</span></div>
+    </div>
+    <div class="metrica reveal" data-delay="180">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 1l22 22M16.7 11.1A11 11 0 0120 13M5 13a11 11 0 015.2-2.9M10.7 5.1A16 16 0 0122.6 9M1.4 9a16 16 0 014.3-2.8M8.5 16.4a5 5 0 017 0M12 20h.01"/></svg></span>
+      <div><b>Offline</b><span>consulta sin señal</span></div>
+    </div>
+    <div class="metrica reveal" data-delay="270">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 9l5 12 1.8-5.2L21 14 9 9z"/><path d="M7.2 2.2L8 5.1M5.1 8l-2.9-.8M14 4.1L12 6M6 12l-1.9 2"/></svg></span>
+      <div><b>1 toque</b><span>para registrar un abono</span></div>
+    </div>
   </div>
 </div>
 
 <main>
 
-<section id="problema">
-  <h2 class="reveal">El cuaderno se moja, se pierde y no saca cuentas</h2>
-  <p class="section-intro reveal" data-delay="90">
-    Buena parte de la venta de una ferretería se hace al fiado: el cliente se lleva
-    el material y paga después. Ese control en papel falla siempre por lo mismo.
-  </p>
-  <div class="split">
-    <div class="panel before reveal">
-      <h3>📓 Con el cuaderno</h3>
-      <ul>
-        <li>Nadie sabe de memoria cuánto debe cada cliente hoy.</li>
-        <li>La mora se calcula a ojo, distinto cada vez y según quién atienda.</li>
-        <li>Los abonos parciales se anotan al margen y se pierden.</li>
-        <li>Si el cuaderno se moja o se traspapela, se pierde dinero real.</li>
+<section id="problema" class="seccion contenedor">
+  <div class="seccion-cabeza centro">
+    <span class="etiqueta reveal">El problema</span>
+    <h2 class="reveal" data-delay="60">El cuaderno se moja, se pierde y no saca cuentas</h2>
+    <p class="section-intro reveal" data-delay="120">
+      Buena parte de la venta de una ferretería se hace al fiado: el cliente se lleva
+      el material y paga después. Ese control en papel falla siempre por lo mismo.
+    </p>
+  </div>
+  <div class="comparacion">
+    <div class="panel antes reveal">
+      <div class="panel-cabeza">
+        <span class="panel-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></span>
+        <div><span class="panel-tag">Antes</span><h3>Con el cuaderno</h3></div>
+      </div>
+      <ul class="lista">
+        <li><i class="no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></i>Nadie sabe de memoria cuánto debe cada cliente hoy.</li>
+        <li><i class="no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></i>La mora se calcula a ojo, distinto cada vez y según quién atienda.</li>
+        <li><i class="no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></i>Los abonos parciales se anotan al margen y se pierden.</li>
+        <li><i class="no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></i>Si el cuaderno se moja o se traspapela, se pierde dinero real.</li>
       </ul>
     </div>
-    <div class="panel after reveal" data-delay="130">
-      <h3>🔧 Con Fiados Ferrefacil</h3>
-      <ul>
-        <li>El saldo de cada cliente sale en pantalla al instante.</li>
-        <li>Los días de atraso los cuenta el sistema, siempre igual.</li>
-        <li>Cada abono queda registrado y baja el saldo solo.</li>
-        <li>Todo vive en una base de datos, no en una hoja suelta.</li>
+    <div class="vs reveal" data-delay="80" aria-hidden="true">VS</div>
+    <div class="panel despues reveal" data-delay="160">
+      <div class="panel-cabeza">
+        <span class="panel-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z"/></svg></span>
+        <div><span class="panel-tag">Ahora</span><h3>Con Fiados Ferrefacil</h3></div>
+      </div>
+      <ul class="lista">
+        <li><i class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></i>El saldo de cada cliente sale en pantalla al instante.</li>
+        <li><i class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></i>Los días de atraso los cuenta el sistema, siempre igual.</li>
+        <li><i class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></i>Cada abono queda registrado y baja el saldo solo.</li>
+        <li><i class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></i>Todo vive en una base de datos, no en una hoja suelta.</li>
       </ul>
     </div>
   </div>
 </section>
 
-<section id="funciones">
-  <h2 class="reveal">Lo que hace</h2>
-  <p class="section-intro reveal" data-delay="90">Sin funciones de más: lo que el mostrador necesita para cobrar a tiempo.</p>
-  <div class="features">
-    <div class="feature reveal" data-delay="0">
-      <span class="ico">⏱️</span>
-      <h3>Mora automática</h3>
-      <p>Cada fiado lleva fecha de vencimiento. Pasada esa fecha, el sistema cuenta los días de atraso sin que nadie haga la resta.</p>
-    </div>
-    <div class="feature reveal" data-delay="110">
-      <span class="ico">💵</span>
+<section id="funciones" class="seccion contenedor">
+  <div class="seccion-cabeza">
+    <span class="etiqueta reveal">Funciones</span>
+    <h2 class="reveal" data-delay="60">Lo que hace</h2>
+    <p class="section-intro reveal" data-delay="120">Sin funciones de más: lo que el mostrador necesita para cobrar a tiempo.</p>
+  </div>
+  <div class="bento">
+    <article class="feature ancha reveal" data-delay="0">
+      <div>
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+        <h3>Mora automática</h3>
+        <p>Cada fiado lleva fecha de vencimiento. Pasada esa fecha, el sistema cuenta los días de atraso sin que nadie haga la resta.</p>
+      </div>
+      <div class="visual" aria-hidden="true">
+        <div class="fechas">
+          <div class="fecha"><span>Vence</span><b data-fecha="vence">25 ago</b></div>
+          <div class="tramo"><i></i></div>
+          <div class="fecha"><span>Hoy</span><b data-fecha="hoy">11 sep</b></div>
+        </div>
+        <div class="resultado"><span class="mora">17 días de mora</span></div>
+      </div>
+    </article>
+
+    <article class="feature reveal" data-delay="110">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
       <h3>Abonos parciales</h3>
       <p>El cliente paga lo que puede. El saldo baja solo y el fiado pasa a «parcial» hasta quedar en cero.</p>
-    </div>
-    <div class="feature reveal" data-delay="220">
-      <span class="ico">👥</span>
+      <div class="abono-demo" aria-hidden="true">
+        <div class="fila"><span>Abonado <b>L. 620.00</b></span><span>de L. 1,000.00</span></div>
+        <div class="progreso"><i></i></div>
+      </div>
+    </article>
+
+    <article class="feature reveal" data-delay="0">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></span>
       <h3>Ficha por cliente</h3>
       <p>Teléfono, dirección y límite de crédito. De un vistazo se ve cuánto debe y desde cuándo.</p>
-    </div>
-    <div class="feature reveal" data-delay="0">
-      <span class="ico">📱</span>
+      <div class="avatares" aria-hidden="true"><span>CM</span><span>AR</span><span>JD</span><span>+45</span></div>
+    </article>
+
+    <article class="feature reveal" data-delay="110">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
       <h3>Se instala y anda sin señal</h3>
       <p>Se agrega a la pantalla de inicio del celular. La interfaz abre sin internet y muestra lo último consultado.</p>
-    </div>
-    <div class="feature reveal" data-delay="110">
-      <span class="ico">🔒</span>
-      <h3>Entrada con contraseña</h3>
+    </article>
+
+    <article class="feature reveal" data-delay="220">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
+      <h3>Entrada segura</h3>
       <p>Sesión en cookie segura y permisos por rol: solo un administrador puede borrar registros.</p>
-    </div>
-    <div class="feature reveal" data-delay="220">
-      <span class="ico">📊</span>
+      <div class="chips" aria-hidden="true"><span class="chip">Contraseña</span><span class="chip">Google</span><span class="chip">Roles</span></div>
+    </article>
+
+    <article class="feature ancha reveal" data-delay="0">
+      <div>
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></svg></span>
+        <h3>Panel para el dueño</h3>
+        <p>Saldo pendiente de toda la cartera, gráficas de los últimos seis meses, clientes con más deuda y recomendaciones de cobro generadas con tus propios datos.</p>
+      </div>
+      <div class="visual visual-panel" aria-hidden="true">
+        <img src="/img/dashboard-hero.svg" alt="" width="320" height="200" loading="lazy">
+      </div>
+    </article>
+
+    <article class="feature reveal" data-delay="110">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21.2 15.9A10 10 0 118 2.8M22 12A10 10 0 0012 2v10z"/></svg></span>
       <h3>Estados claros</h3>
       <p>Pendiente, parcial o pagado. Se ve al momento a quién hay que cobrarle hoy.</p>
+      <div class="barra-estados" aria-hidden="true">
+        <i style="--g:31;flex-grow:31;background:var(--estado-pendiente)"></i>
+        <i style="--g:16;flex-grow:16;background:var(--estado-parcial)"></i>
+        <i style="--g:53;flex-grow:53;background:var(--estado-pagado)"></i>
+      </div>
+      <div class="leyenda" aria-hidden="true">
+        <span style="--c:var(--estado-pendiente)">Pendiente</span>
+        <span style="--c:var(--estado-parcial)">Parcial</span>
+        <span style="--c:var(--estado-pagado)">Pagado</span>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="panel" class="banda">
+  <div class="contenedor panel-grid">
+    <div>
+      <span class="etiqueta reveal">Para el dueño</span>
+      <h2 class="reveal" data-delay="60">Un panel que te dice a quién cobrar primero</h2>
+      <p class="section-intro reveal" data-delay="120">
+        Además de llevar la cuenta, la aplicación lee la cartera y convierte los números
+        en acciones concretas para el día.
+      </p>
+      <ul class="lista-check reveal" data-delay="180">
+        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></i>Saldo pendiente, mora promedio y gráficas de lo fiado contra lo cobrado.</li>
+        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></i>Alertas de mora crítica y de clientes que concentran demasiada deuda.</li>
+        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></i>Consejos prácticos del rubro para atender mejor al cliente de obra.</li>
+      </ul>
+      <a class="btn reveal" data-delay="240" href="/app">
+        Entrar al panel
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="recos-demo reveal" data-delay="100" aria-hidden="true">
+      <div class="reco critico" style="--i:0">
+        <span class="reco-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg></span>
+        <div><small>Urgente</small><b>Cobrá los 5 fiados en mora crítica</b><p>Llevan más de 15 días vencidos.</p></div>
+        <span class="reco-boton">Ver fiados</span>
+      </div>
+      <div class="reco atencion" style="--i:1">
+        <span class="reco-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></span>
+        <div><small>Atención</small><b>Carlos M. concentra el 23% del saldo</b><p>Un plan de abonos con fechas fijas reduce el riesgo.</p></div>
+      </div>
+      <div class="reco bien" style="--i:2">
+        <span class="reco-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></span>
+        <div><small>Bien</small><b>Este mes se cobra más de lo que se fía</b><p>La cartera bajó L. 2,200.00 en lo que va del mes.</p></div>
+      </div>
+      <div class="consejo-mini" style="--i:3">
+        <img src="/img/consejos-obra.svg" alt="" width="160" height="110" loading="lazy">
+        <div><small>Consejo del rubro</small><b>12.5 bloques</b><span>por metro cuadrado de pared</span></div>
+      </div>
     </div>
   </div>
 </section>
 
-<section id="como">
-  <h2 class="reveal">Cómo funciona</h2>
-  <p class="section-intro reveal" data-delay="90">Tres pasos en el mostrador, igual que con el cuaderno pero sin las cuentas.</p>
-  <div class="steps">
-    <div class="step reveal" data-delay="0">
+<section id="como" class="seccion contenedor">
+  <div class="seccion-cabeza centro">
+    <span class="etiqueta reveal">Cómo funciona</span>
+    <h2 class="reveal" data-delay="60">Tres pasos en el mostrador</h2>
+    <p class="section-intro reveal" data-delay="120">Igual que con el cuaderno, pero sin las cuentas.</p>
+  </div>
+  <ol class="pasos reveal">
+    <li class="paso" style="--i:0">
+      <span class="paso-circulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg><span class="paso-num">1</span></span>
       <h3>Registrás el cliente</h3>
       <p>Nombre y teléfono bastan. Si querés, le ponés un límite de crédito para no pasarte.</p>
-    </div>
-    <div class="step reveal" data-delay="130">
+    </li>
+    <li class="paso" style="--i:1">
+      <span class="paso-circulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg><span class="paso-num">2</span></span>
       <h3>Anotás el fiado</h3>
       <p>Qué se llevó, cuánto y para cuándo lo paga. Ahí queda guardado con su fecha.</p>
-    </div>
-    <div class="step reveal" data-delay="260">
+    </li>
+    <li class="paso" style="--i:2">
+      <span class="paso-circulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="paso-num">3</span></span>
       <h3>Cobrás y abonás</h3>
       <p>Cada pago que entra se registra y baja el saldo. La mora se actualiza sola.</p>
-    </div>
-  </div>
+    </li>
+  </ol>
 </section>
 
-<section>
+<section class="contenedor">
   <div class="demo reveal">
     <div>
+      <span class="etiqueta clara">Sin registro</span>
       <h2>Probala ahora mismo</h2>
       <p>Hay un usuario de demostración cargado. No hace falta registrarse.</p>
       <!-- Se rellena desde /api/publico/demo. El texto de respaldo se ve si
            el JS no carga o si no hay cuenta demo configurada. -->
       <div class="creds" id="demo-creds">
-        usuario: <b id="demo-email">—</b><br>
-        contraseña: <b id="demo-password">—</b>
+        <span>usuario</span><b id="demo-email">—</b>
+        <span>contraseña</span><b id="demo-password">—</b>
+      </div>
+      <div class="demo-cta">
+        <a class="btn brillante" href="/app">
+          Iniciar sesión
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a class="btn ghost" href="/presentacion.html">Ver la presentación</a>
       </div>
     </div>
-    <a class="btn" href="/app">Iniciar sesión</a>
+    <img class="demo-img" src="/img/login-ferreteria.svg" alt="Ilustración de la fachada de la ferretería" width="300" height="124" loading="lazy">
   </div>
 </section>
 
 </main>
 
 <footer>
-  <div class="footer-inner">
-    <div>🔧 Fiados Ferrefacil · Control de crédito para ferreterías</div>
-    <div class="fl">
+  <div class="contenedor footer-inner">
+    <div class="footer-marca"><span class="logo" aria-hidden="true">🔧</span>Fiados Ferrefacil · Control de crédito para ferreterías</div>
+    <nav aria-label="Enlaces del pie">
       <a href="/app">Entrar a la app</a>
       <a href="/presentacion.html">Presentación</a>
       <a href="/api/health">Estado del servicio</a>
-    </div>
+    </nav>
   </div>
 </footer>
 
