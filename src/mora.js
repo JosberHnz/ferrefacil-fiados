@@ -17,7 +17,8 @@ function calcularMora(fechaVencimiento, estado, hoy = new Date()) {
   const diffMs = ref - venc;
   const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  return diffDias > 0 ? diffDias : 0;
+  // Math.max devolveria NaN con una fecha invalida; "|| 0" conserva el piso en 0.
+  return Math.max(diffDias, 0) || 0;
 }
 
 /** Saldo pendiente de un fiado dado su monto total y la suma de sus pagos. */

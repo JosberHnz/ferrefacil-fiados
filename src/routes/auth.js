@@ -35,7 +35,7 @@ router.post('/login', async (req, res, next) => {
 
 router.post('/logout', async (req, res, next) => {
   try {
-    const token = req.cookies && req.cookies.session;
+    const token = req.cookies?.session;
     if (token) await logout(token);
     res.clearCookie('session');
     res.json({ ok: true });
@@ -91,7 +91,7 @@ router.get('/callback', async (req, res, next) => {
 
   try {
     const { code } = req.query;
-    const verifier = req.cookies && req.cookies[COOKIE_VERIFIER];
+    const verifier = req.cookies?.[COOKIE_VERIFIER];
     res.clearCookie(COOKIE_VERIFIER);
 
     if (!code) return alError('Google no devolvio un codigo');

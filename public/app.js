@@ -261,7 +261,7 @@ async function api(path, opts = {}) {
   const res = await fetch(API + path, {
     credentials: 'same-origin',
     ...opts,
-    headers: { ...headers, ...(opts.headers || {}) }
+    headers: { ...headers, ...opts.headers }
   });
   if (res.status === 401) { showLogin(); throw new Error('No autenticado'); }
   if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Error');
@@ -303,7 +303,9 @@ document.getElementById('login-form').addEventListener('submit', async e => {
     const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     usuarioActual = data.user;
     showApp();
-  } catch (err) {
+  } catch {
+    // A proposito no se distingue el motivo (correo inexistente o clave
+    // incorrecta): decir cual fue le daria pistas a quien prueba cuentas.
     mostrarErrorLogin('Correo o contraseña incorrectos');
     sacudir(document.querySelector('.login-card'));
   } finally {
@@ -325,7 +327,7 @@ document.getElementById('btn-feedback').addEventListener('click', () =>
       campos: [{ nombre: 'mensaje', tipo: 'textarea', label: '¿Qué comentario querés dejar sobre la app?', placeholder: 'Escribí acá...' }],
       textoConfirmar: 'Enviar'
     });
-    if (!r || !r.mensaje.trim()) return;
+    if (!r?.mensaje.trim()) return;
     await api('/feedback', {
       method: 'POST', clave: nuevaClave(),
       body: JSON.stringify({ mensaje: r.mensaje.trim() })
@@ -375,7 +377,7 @@ async function pagar(fiadoId){
     campos: [{ nombre: 'monto', tipo: 'number', label: '¿Cuánto se abona? (L.)', placeholder: '0.00' }],
     textoConfirmar: 'Abonar'
   });
-  if (!r || !r.monto) return;
+  if (!r?.monto) return;
 
   abonosEnCurso.add(fiadoId);
   const boton = document.querySelector(`[data-pagar="${fiadoId}"]`);
@@ -420,6 +422,12 @@ function paramsFiltroFiados(){
 // Mas de 15 dias de mora es "critica", el mismo umbral que usa el dashboard.
 const DIAS_MORA_CRITICA = 15;
 
+function celdaMora(dias){
+  if (dias <= 0) return '—';
+  const clase = dias > DIAS_MORA_CRITICA ? 'mora critica' : 'mora';
+  return `<span class="${clase}">${dias} días</span>`;
+}
+
 async function cargarFiados(){
   const fiados = await api('/fiados' + paramsFiltroFiados());
   document.getElementById('tabla-fiados').innerHTML = fiados.map(f => `
@@ -427,7 +435,7 @@ async function cargarFiados(){
       <td>${escapeHtml(f.cliente_nombre || nombreCliente(f.cliente_id))}</td>
       <td>${escapeHtml(f.descripcion)}</td>
       <td>${lempiras(f.saldo)}</td>
-      <td>${f.dias_mora > 0 ? `<span class="mora${f.dias_mora > DIAS_MORA_CRITICA ? ' critica' : ''}">${f.dias_mora} días</span>` : '—'}</td>
+      <td>${celdaMora(f.dias_mora)}</td>
       <td><span class="badge ${f.estado}">${f.estado}</span></td>
       <td>${f.estado !== 'pagado' ? `<button class="secondary small" data-pagar="${f.id}">Abonar</button>` : ''}</td>
     </tr>`).join('') || '<tr><td colspan="6"><div class="vacio">Sin fiados que coincidan con la búsqueda.</div></td></tr>';
@@ -464,7 +472,7 @@ function esAdmin(){
 function moverPastilla(grupo){
   const pastilla = grupo.querySelector('.pastilla');
   const activo = grupo.querySelector('button.activo');
-  if (!pastilla || !activo || !activo.offsetWidth) return;
+  if (!pastilla || !activo?.offsetWidth) return;
 
   pastilla.style.width = `${activo.offsetWidth}px`;
   pastilla.style.height = `${activo.offsetHeight}px`;
@@ -891,9 +899,10 @@ function pintarMovimiento(meses){
 
   meses.forEach((d, i) => {
     const filas = SERIES_MOVIMIENTO.map(s => ({ color: s.color, valor: lempiras(d[s.clave]), etiqueta: s.etiqueta }));
+    const resumen = filas.map(f => f.etiqueta + ' ' + f.valor).join(', ');
     const zona = svgEl('rect', {
       class: 'viz-zona', x: redondear(x(i) - franja / 2), y: margen.arriba, width: redondear(franja), height: alto,
-      tabindex: 0, 'aria-label': `${nombreMes(d)}: ${filas.map(f => `${f.etiqueta} ${f.valor}`).join(', ')}`
+      tabindex: 0, 'aria-label': `${nombreMes(d)}: ${resumen}`
     });
     const activar = (cx, cy) => {
       cruz.setAttribute('x1', redondear(x(i)));
@@ -938,7 +947,6 @@ function crearSegmento(estado){
   const seg = document.createElement('div');
   seg.className = 'seg';
   seg.dataset.estado = estado.clave;
-  seg.tabIndex = 0;
   seg.style.background = estado.color;
 
   // El tooltip lee los datos del propio segmento, asi refleja el modo
@@ -947,13 +955,18 @@ function crearSegmento(estado){
     { color: estado.color, valor: seg.dataset.valor, etiqueta: seg.dataset.pct }
   ]);
   seg.addEventListener('pointermove', e => tip(e.clientX, e.clientY));
-  seg.addEventListener('focus', () => {
-    const caja = seg.getBoundingClientRect();
-    tip(caja.left + caja.width / 2, caja.top);
-  });
   seg.addEventListener('pointerleave', ocultarTooltip);
-  seg.addEventListener('blur', ocultarTooltip);
   return seg;
+}
+
+function etiquetaTotalEstados(porMonto, total){
+  if (porMonto) return 'fiados en total';
+  return total === 1 ? 'fiado registrado' : 'fiados registrados';
+}
+
+function valorDeEstado(fila, porMonto){
+  if (!fila) return 0;
+  return Number(porMonto ? fila.total : fila.n);
 }
 
 function pintarChartFiados(porEstado){
@@ -961,24 +974,19 @@ function pintarChartFiados(porEstado){
   const porMonto = modoEstados === 'total';
   const formato = porMonto ? lempiras : entero;
 
-  const datos = ESTADOS.map(e => {
-    const fila = porEstado.find(f => f.estado === e.clave);
-    return { ...e, valor: fila ? Number(porMonto ? fila.total : fila.n) : 0 };
-  });
+  const datos = ESTADOS.map(e => ({ ...e, valor: valorDeEstado(porEstado.find(f => f.estado === e.clave), porMonto) }));
   const total = datos.reduce((a, d) => a + d.valor, 0);
   const visibles = datos.filter(d => d.valor > 0);
 
   animarNumero(document.getElementById('estado-total-valor'), total, formato);
-  document.getElementById('estado-total-label').textContent =
-    porMonto ? 'fiados en total' : (total === 1 ? 'fiado registrado' : 'fiados registrados');
+  document.getElementById('estado-total-label').textContent = etiquetaTotalEstados(porMonto, total);
   document.getElementById('estado-sub').textContent =
     porMonto ? 'Monto original de los fiados en cada estado' : 'Cantidad de fiados en cada estado';
 
+  // La barra es solo visual (aria-hidden en el HTML): los mismos valores se
+  // leen como texto en la lista de estados que va debajo.
   const barra = document.getElementById('chart-fiados');
   barra.classList.toggle('vacia', total === 0);
-  barra.setAttribute('aria-label', total === 0
-    ? 'Sin fiados registrados'
-    : 'Fiados por estado: ' + visibles.map(d => `${d.etiqueta} ${formato(d.valor)} (${porcentaje(d.valor, total)}%)`).join(', '));
 
   datos.forEach(d => {
     let seg = barra.querySelector(`[data-estado="${d.clave}"]`);
@@ -989,7 +997,6 @@ function pintarChartFiados(porEstado){
     seg.dataset.valor = formato(d.valor);
     seg.dataset.pct = `${porcentaje(d.valor, total)}% del total`;
     seg.hidden = d.valor === 0;
-    seg.setAttribute('aria-label', `${d.etiqueta}: ${formato(d.valor)}`);
     seg.classList.toggle('primero', d === visibles[0]);
     seg.classList.toggle('ultimo', d === visibles.at(-1));
     // flex-grow en porcentaje: los segmentos siempre suman el ancho completo
@@ -1183,105 +1190,125 @@ function irATickets(){
   desplazarA(document.getElementById('tabs-admin'));
 }
 
-/**
- * Traduce las cifras del dashboard en acciones concretas, de la mas urgente
- * a la menos. Son reglas simples y explicables a proposito: el dueño tiene
- * que poder entender por que la app le sugiere algo.
- */
-function generarRecomendaciones(s){
-  const recos = [];
-  const cartera = s.cartera || { saldo_pendiente: 0, fiados_abiertos: 0 };
+// Cada regla mira un aspecto de la cartera y devuelve una recomendacion o
+// null. Son reglas simples y explicables a proposito: el dueño tiene que
+// poder entender por que la app le sugiere algo.
+
+/** Fiados con mas de DIAS_MORA_CRITICA dias vencidos. */
+function recoMoraCritica(s, cartera){
   const critica = s.mora_critica_count || 0;
-  const totalFiados = (s.fiados_por_estado || []).reduce((a, f) => a + f.n, 0);
+  if (critica === 0) return null;
+  const uno = critica === 1;
+  return {
+    nivel: 'critico',
+    titulo: uno ? 'Cobrá el fiado en mora crítica' : `Cobrá los ${critica} fiados en mora crítica`,
+    detalle: `${uno ? 'Lleva' : 'Llevan'} más de ${DIAS_MORA_CRITICA} días vencidos ` +
+      `(${porcentaje(critica, cartera.fiados_abiertos)}% de los fiados abiertos). ` +
+      'Un cobro que se deja correr es cada vez más difícil de recuperar.',
+    accion: { texto: 'Ver fiados', fn: irAFiados }
+  };
+}
 
-  if (critica > 0) {
-    recos.push({
-      nivel: 'critico',
-      titulo: critica === 1 ? 'Cobrá el fiado en mora crítica' : `Cobrá los ${critica} fiados en mora crítica`,
-      detalle: `${critica === 1 ? 'Lleva' : 'Llevan'} más de ${DIAS_MORA_CRITICA} días vencidos ` +
-        `(${porcentaje(critica, cartera.fiados_abiertos)}% de los fiados abiertos). ` +
-        'Un cobro que se deja correr es cada vez más difícil de recuperar.',
-      accion: { texto: 'Ver fiados', fn: irAFiados }
-    });
-  }
-
+/** Un solo cliente acumula una parte grande del saldo pendiente. */
+function recoConcentracion(s, cartera){
   const deudores = s.top_deudores || [];
+  if (deudores.length < 2 || cartera.saldo_pendiente <= 0) return null;
   const mayor = deudores[0];
-  const concentracion = mayor && cartera.saldo_pendiente > 0 ? porcentaje(mayor.deuda, cartera.saldo_pendiente) : 0;
-  if (deudores.length > 1 && concentracion >= 20) {
-    recos.push({
+  const concentracion = porcentaje(mayor.deuda, cartera.saldo_pendiente);
+  if (concentracion < 20) return null;
+  return {
+    nivel: 'atencion',
+    icono: ICONO_CLIENTES,
+    titulo: `${mayor.nombre} concentra el ${concentracion}% del saldo pendiente`,
+    detalle: `Debe ${lempiras(mayor.deuda)}. Pactar un plan de abonos con fechas fijas reduce el riesgo si ese cliente se atrasa.`
+  };
+}
+
+/** Balance del mes en curso entre lo fiado y lo cobrado. */
+function recoBalanceMes(s){
+  const mes = (s.movimiento_mensual || []).at(-1);
+  if (!mes) return null;
+  const neto = mes.abonado - mes.fiado;
+  if (neto === 0) return null;
+
+  const nombreMes = MES_NOMBRE.format(fechaDeMes(mes.mes));
+  if (neto < 0) {
+    return {
       nivel: 'atencion',
-      icono: ICONO_CLIENTES,
-      titulo: `${mayor.nombre} concentra el ${concentracion}% del saldo pendiente`,
-      detalle: `Debe ${lempiras(mayor.deuda)}. Pactar un plan de abonos con fechas fijas reduce el riesgo si ese cliente se atrasa.`
-    });
+      icono: ICONO_TENDENCIA,
+      titulo: `En ${nombreMes} se está fiando más de lo que se cobra`,
+      detalle: `Van ${lempiras(mes.fiado)} fiados y ${lempiras(mes.abonado)} abonados: ` +
+        `la cartera creció ${lempiras(-neto)} en lo que va del mes.`
+    };
   }
+  return {
+    nivel: 'bien',
+    icono: ICONO_TENDENCIA,
+    titulo: `En ${nombreMes} se cobra más de lo que se fía`,
+    detalle: `Van ${lempiras(mes.abonado)} abonados contra ${lempiras(mes.fiado)} fiados: ` +
+      `la cartera bajó ${lempiras(neto)} en lo que va del mes.`
+  };
+}
 
-  const mesActual = (s.movimiento_mensual || []).at(-1);
-  if (mesActual && (mesActual.fiado > 0 || mesActual.abonado > 0)) {
-    const nombreMes = MES_NOMBRE.format(fechaDeMes(mesActual.mes));
-    const neto = mesActual.abonado - mesActual.fiado;
-    if (neto < 0) {
-      recos.push({
-        nivel: 'atencion',
-        icono: ICONO_TENDENCIA,
-        titulo: `En ${nombreMes} se está fiando más de lo que se cobra`,
-        detalle: `Van ${lempiras(mesActual.fiado)} fiados y ${lempiras(mesActual.abonado)} abonados: ` +
-          `la cartera creció ${lempiras(-neto)} en lo que va del mes.`
-      });
-    } else if (neto > 0) {
-      recos.push({
-        nivel: 'bien',
-        icono: ICONO_TENDENCIA,
-        titulo: `En ${nombreMes} se cobra más de lo que se fía`,
-        detalle: `Van ${lempiras(mesActual.abonado)} abonados contra ${lempiras(mesActual.fiado)} fiados: ` +
-          `la cartera bajó ${lempiras(neto)} en lo que va del mes.`
-      });
-    }
-  }
+function recoMoraPromedio(s){
+  if ((s.mora_promedio_dias || 0) <= 30) return null;
+  return {
+    nivel: 'atencion',
+    icono: ICONO_RELOJ,
+    titulo: 'La mora promedio supera un mes',
+    detalle: `Los fiados vencidos llevan en promedio ${entero(s.mora_promedio_dias)} días. ` +
+      'Acortar los plazos o pedir un anticipo en compras grandes ayuda a bajarla.'
+  };
+}
 
-  if ((s.mora_promedio_dias || 0) > 30) {
-    recos.push({
-      nivel: 'atencion',
-      icono: ICONO_RELOJ,
-      titulo: 'La mora promedio supera un mes',
-      detalle: `Los fiados vencidos llevan en promedio ${entero(s.mora_promedio_dias)} días. ` +
-        'Acortar los plazos o pedir un anticipo en compras grandes ayuda a bajarla.'
-    });
-  }
+function recoTickets(s){
+  const abiertos = s.tickets_abiertos || 0;
+  if (abiertos === 0) return null;
+  return {
+    nivel: 'info',
+    icono: ICONO_TICKET,
+    titulo: abiertos === 1 ? 'Hay 1 ticket de error sin resolver' : `Hay ${abiertos} tickets de error sin resolver`,
+    detalle: 'Revisarlos pronto evita que un fallo de la aplicación interrumpa las ventas al crédito.',
+    accion: { texto: 'Ver tickets', fn: irATickets }
+  };
+}
 
-  if (s.tickets_abiertos > 0) {
-    recos.push({
-      nivel: 'info',
-      icono: ICONO_TICKET,
-      titulo: s.tickets_abiertos === 1 ? 'Hay 1 ticket de error sin resolver' : `Hay ${s.tickets_abiertos} tickets de error sin resolver`,
-      detalle: 'Revisarlos pronto evita que un fallo de la aplicación interrumpa las ventas al crédito.',
-      accion: { texto: 'Ver tickets', fn: irATickets }
-    });
-  }
-
-  const hayAlertas = recos.some(r => r.nivel === 'critico' || r.nivel === 'atencion');
+/** Si no hay alertas, confirma que todo va bien; si no hay fiados, orienta para empezar. */
+function recoCierre(s, cartera, recos){
+  const totalFiados = (s.fiados_por_estado || []).reduce((a, f) => a + f.n, 0);
   if (totalFiados === 0) {
-    recos.push({
+    return {
       nivel: 'info',
       titulo: 'Todavía no hay fiados registrados',
       detalle: 'Cuando registres fiados, acá vas a ver qué conviene atender primero.'
-    });
-  } else if (!hayAlertas) {
-    const abiertos = cartera.fiados_abiertos;
-    recos.push({
-      nivel: 'bien',
-      titulo: abiertos ? 'La cartera está bajo control' : 'No hay fiados pendientes de cobro',
-      detalle: abiertos
-        ? `No hay mora crítica entre ${abiertos === 1 ? 'el fiado abierto' : `los ${entero(abiertos)} fiados abiertos`}. ` +
-          'Recordar el vencimiento a los clientes unos días antes es la mejor forma de seguir así.'
-        : 'Todos los fiados registrados están pagados.'
-    });
+    };
   }
+  if (recos.some(r => r.nivel === 'critico' || r.nivel === 'atencion')) return null;
 
-  return recos
-    .sort((a, b) => NIVELES_RECO[a.nivel].orden - NIVELES_RECO[b.nivel].orden)
-    .slice(0, MAX_RECOMENDACIONES);
+  const abiertos = cartera.fiados_abiertos;
+  if (!abiertos) {
+    return { nivel: 'bien', titulo: 'No hay fiados pendientes de cobro', detalle: 'Todos los fiados registrados están pagados.' };
+  }
+  const cuales = abiertos === 1 ? 'el fiado abierto' : `los ${entero(abiertos)} fiados abiertos`;
+  return {
+    nivel: 'bien',
+    titulo: 'La cartera está bajo control',
+    detalle: `No hay mora crítica entre ${cuales}. ` +
+      'Recordar el vencimiento a los clientes unos días antes es la mejor forma de seguir así.'
+  };
+}
+
+const REGLAS_RECOMENDACION = [recoMoraCritica, recoConcentracion, recoBalanceMes, recoMoraPromedio, recoTickets];
+
+/** Traduce las cifras del dashboard en acciones concretas, de la mas urgente a la menos. */
+function generarRecomendaciones(s){
+  const cartera = s.cartera || { saldo_pendiente: 0, fiados_abiertos: 0 };
+  const recos = REGLAS_RECOMENDACION.map(regla => regla(s, cartera)).filter(Boolean);
+  const cierre = recoCierre(s, cartera, recos);
+  if (cierre) recos.push(cierre);
+
+  recos.sort((a, b) => NIVELES_RECO[a.nivel].orden - NIVELES_RECO[b.nivel].orden);
+  return recos.slice(0, MAX_RECOMENDACIONES);
 }
 
 function pintarRecomendaciones(s){

@@ -6,7 +6,7 @@
 -- Las fechas son RELATIVAS al dia en que se ejecuta la migracion. La
 -- version anterior del seed usaba fechas fijas ('2026-08-30'), asi que los
 -- ejemplos se vencian con el paso del tiempo y la demo acababa mostrando
--- todo en mora en vez de ilustrar los tres estados.
+-- cada fiado en mora en vez de ilustrar los tres estados.
 --
 -- Idempotente: cada bloque comprueba antes si el registro ya existe, asi
 -- que repetir la migracion no duplica nada.
